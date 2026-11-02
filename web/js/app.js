@@ -3896,6 +3896,25 @@
     return _connectedConsuls.slice();   // defensive copy
   };
 
+  // Add a Consul to the sidebar the way the Connect dialog does, without
+  // the dialog (AutoStart). Already listed: nothing to do, the periodic
+  // poll keeps it current.
+  MM.addConsulConnection = function (url) {
+    url = String(url || '').replace(/\/+$/, '');
+    if (_connectedConsuls.find(function (c) { return c.url === url; })) {
+      return Promise.resolve();
+    }
+    return _connectConsulUrl(url).then(function (conn) {
+      // The saved-URL reconnect may have added it meanwhile.
+      if (_connectedConsuls.find(function (c) { return c.url === url; })) return;
+      conn.alive = true;
+      _connectedConsuls.push(conn);
+      _saveConsulUrls();
+      _renderConsulChips();
+      _renderAllConnectedConsuls();
+    });
+  };
+
   // --------------------------------------------------------------------
   // Periodic refresh of connected Consuls
   // --------------------------------------------------------------------
@@ -9497,9 +9516,89 @@
             'placeholder="1112" value="' + _escapeHtml(_settings.bridgePort || '') + '">' +
           '<div class="form-text">Port for the FastAPI bridge (REST API &amp; WebSocket)</div>' +
         '</div>' +
+
+        // The browser-hosted GUI starts nothing: the bridge serves it.
+        (window.electronAPI ? (
+          '<hr>' +
+          '<h6 class="fw-semibold mb-3">Startup</h6>' +
+          '<div class="form-text mb-2 small">' +
+            'What to start when the GUI opens. Anything already running is used as it is; ' +
+            'nothing is stopped when the GUI closes. Consul, Nomad and jobs need the bridge, ' +
+            'so they start it too.' +
+          '</div>' +
+          '<div class="mb-3">' +
+            _startupBox('settingAutoBridge', 'Start the bridge', _settings.autoStartBridge) +
+            _startupBox('settingAutoConsul', 'Start a local Consul agent (dev mode, 127.0.0.1:8500)', _settings.autoStartConsul) +
+            _startupBox('settingAutoNomad', 'Start a local Nomad agent (dev mode, 127.0.0.1:4646)', _settings.autoStartNomad) +
+          '</div>' +
+          '<div class="mb-3">' +
+            '<label for="settingAutoJobs" class="form-label fw-semibold">Nomad jobs to run</label>' +
+            '<textarea class="form-control font-monospace small" id="settingAutoJobs" rows="3" ' +
+              'placeholder="One job file (.hcl, .nomad) or folder of them per line">' +
+              _escapeHtml((_settings.autoStartJobs || []).join('\n')) +
+            '</textarea>' +
+            (window.electronAPI && window.electronAPI.showOpenDialog ?
+              '<div class="mt-1">' +
+                '<button class="btn btn-sm btn-outline-secondary me-1" type="button" id="btnAddJobFile">' +
+                  '<i class="bi bi-file-earmark-plus me-1"></i>Add file&hellip;</button>' +
+                '<button class="btn btn-sm btn-outline-secondary" type="button" id="btnAddJobFolder">' +
+                  '<i class="bi bi-folder-plus me-1"></i>Add folder&hellip;</button>' +
+              '</div>' : '') +
+            '<div class="form-text">Run in this order once Nomad is up. A folder runs every ' +
+              '<code>.hcl</code> and <code>.nomad</code> file in it.</div>' +
+          '</div>'
+        ) : '') +
       '</form>';
 
     _wireSettingsBrowseButtons();
+    _wireStartupButtons();
+  }
+
+  function _startupBox(id, label, on) {
+    return '<div class="form-check">' +
+        '<input class="form-check-input" type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + '>' +
+        '<label class="form-check-label" for="' + id + '">' + label + '</label>' +
+      '</div>';
+  }
+
+  // Add file / Add folder append the picked paths to the job list.
+  function _wireStartupButtons() {
+    if (!window.electronAPI || !window.electronAPI.showOpenDialog) return;
+
+    function pick(properties, filters) {
+      window.electronAPI.showOpenDialog({
+        title: 'Nomad jobs to run at startup',
+        properties: properties,
+        filters: filters
+      }).then(function (result) {
+        if (!result || result.canceled || !result.filePaths) return;
+        var input = document.getElementById('settingAutoJobs');
+        if (!input) return;
+        var lines = input.value.split(/\r?\n/).filter(function (l) { return l.trim(); });
+        result.filePaths.forEach(function (p) {
+          if (lines.indexOf(p) < 0) lines.push(p);
+        });
+        input.value = lines.join('\n');
+      }).catch(function (err) {
+        console.error('[settings] Browse dialog failed:', err);
+      });
+    }
+
+    var fileBtn = document.getElementById('btnAddJobFile');
+    if (fileBtn) {
+      fileBtn.addEventListener('click', function () {
+        pick(['openFile', 'multiSelections'], [
+          { name: 'Nomad jobs', extensions: ['hcl', 'nomad'] },
+          { name: 'All files',  extensions: ['*'] }
+        ]);
+      });
+    }
+    var folderBtn = document.getElementById('btnAddJobFolder');
+    if (folderBtn) {
+      folderBtn.addEventListener('click', function () {
+        pick(['openDirectory'], undefined);
+      });
+    }
   }
 
   // Wire the optional Browse buttons next to Consul/Nomad path inputs.
@@ -9567,6 +9666,18 @@
       brokerPort: brokerPortInput ? brokerPortInput.value.trim() : '',
       bridgePort: bridgePortInput ? bridgePortInput.value.trim() : ''
     };
+    var checked = function (id) {
+      var el = document.getElementById(id);
+      return !!(el && el.checked);
+    };
+    var jobsInput = document.getElementById('settingAutoJobs');
+    newSettings.autoStartBridge = checked('settingAutoBridge');
+    newSettings.autoStartConsul = checked('settingAutoConsul');
+    newSettings.autoStartNomad  = checked('settingAutoNomad');
+    newSettings.autoStartJobs   = jobsInput
+      ? jobsInput.value.split(/\r?\n/).map(function (l) { return l.trim(); })
+          .filter(function (l) { return l; })
+      : [];
     var viewAdmin = document.getElementById('settingViewAdmin');
     var viewDev = document.getElementById('settingViewDev');
     if (viewAdmin && viewDev && !_viewFromUrl) {

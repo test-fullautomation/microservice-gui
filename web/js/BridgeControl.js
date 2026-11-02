@@ -127,12 +127,14 @@
     return Promise.resolve({});
   }
 
+  // Resolves true once the bridge answers, false when it did not start
+  // (the failure dialog has already said why). AutoStart waits on it.
   function _onStartClick() {
     if (!_isElectron() || !window.electronAPI.spawnBridge) {
       MM.showToast('Bridge',
         'Start/stop is only available in the Electron app. In browser mode ' +
         'the bridge must be started from the command line.', 'warning');
-      return;
+      return Promise.resolve(false);
     }
 
     _setLed('pending', 'Starting bridge...');
@@ -140,7 +142,7 @@
     // Forward the Settings modal values to spawnBridge so the spawned
     // subprocess uses the user-configured Python (with the packages it
     // needs installed), and the configured broker/bridge endpoints.
-    _loadSettings().then(function (settings) {
+    return _loadSettings().then(function (settings) {
       settings = settings || {};
       var spawnOpts = {
         // Empty: the app picks this platform's interpreter (python3 on Linux).
@@ -161,65 +163,69 @@
             ? 'Could not start ' + (info.python || 'Python') + ': ' + info.error + '. ' +
               'Set the Python interpreter in Settings (on Linux usually python3, or a venv\'s bin/python).'
             : 'Bridge spawn returned no PID.');
-          return;
+          return false;
         }
 
         // Spawn returned a PID, but that only means the subprocess started.
         // The subprocess might crash immediately (missing dep, port conflict,
         // config error).  Verify reachability via HTTP before claiming success.
-        _verifyBridgeUp(info.pid);
+        return _verifyBridgeUp(info.pid);
       })
       .catch(function (err) {
         _handleStartFailure('Start failed: ' + (err && err.message || err));
+        return false;
       });
   }
 
   // Poll /api/version up to ~8 seconds.  Give up and report failure if the
-  // bridge doesn't answer.  Reports success on the first successful probe.
+  // bridge doesn't answer.  Resolves true on the first successful probe.
   function _verifyBridgeUp(pid) {
-    var attempts = 0;
-    var maxAttempts = 16;           // 16 * 500ms = 8s
-    _setLed('pending', 'Starting bridge...');
+    return new Promise(function (resolve) {
+      var attempts = 0;
+      var maxAttempts = 16;           // 16 * 500ms = 8s
+      _setLed('pending', 'Starting bridge...');
 
-    var label = document.getElementById('bridgeLabel');
+      var label = document.getElementById('bridgeLabel');
 
-    function tick() {
-      attempts++;
-      _probe().then(function (up) {
-        if (up) {
-          _setLed('up', 'Bridge up');
-          MM.showToast('Bridge', 'Bridge started (PID ' + pid + ')', 'success');
-          return;
-        }
+      function fail(reason) {
+        _handleStartFailure(reason);
+        resolve(false);
+      }
 
-        // Check if the subprocess is still alive.  If it already exited,
-        // don't keep polling — surface the failure immediately.
-        var stillRunning = true;
-        if (window.electronAPI.isBridgeRunning) {
-          Promise.resolve(window.electronAPI.isBridgeRunning())
-            .then(function (info) {
-              stillRunning = info && info.running;
-              if (!stillRunning) {
-                _handleStartFailure('Bridge process exited before binding its port.');
-              } else if (attempts < maxAttempts) {
-                if (label) label.textContent = 'Starting bridge... (' + attempts + '/' + maxAttempts + ')';
-                setTimeout(tick, 500);
-              } else {
-                _handleStartFailure('Bridge did not respond within ' + (maxAttempts / 2) + 's.');
-              }
-            });
-          return;
-        }
-
+      function again() {
         if (attempts < maxAttempts) {
           if (label) label.textContent = 'Starting bridge... (' + attempts + '/' + maxAttempts + ')';
           setTimeout(tick, 500);
         } else {
-          _handleStartFailure('Bridge did not respond within ' + (maxAttempts / 2) + 's.');
+          fail('Bridge did not respond within ' + (maxAttempts / 2) + 's.');
         }
-      });
-    }
-    tick();
+      }
+
+      function tick() {
+        attempts++;
+        _probe().then(function (up) {
+          if (up) {
+            _setLed('up', 'Bridge up');
+            MM.showToast('Bridge', 'Bridge started (PID ' + pid + ')', 'success');
+            resolve(true);
+            return;
+          }
+
+          // Check if the subprocess is still alive.  If it already exited,
+          // don't keep polling — surface the failure immediately.
+          if (window.electronAPI.isBridgeRunning) {
+            Promise.resolve(window.electronAPI.isBridgeRunning())
+              .then(function (info) {
+                if (info && info.running) again();
+                else fail('Bridge process exited before binding its port.');
+              });
+            return;
+          }
+          again();
+        });
+      }
+      tick();
+    });
   }
 
   // Report a start failure: set LED red, show a red toast, pop a modal with
@@ -335,8 +341,11 @@
   }
 
   // Expose for manual control from other scripts if needed.
+  // isUp() answers whether the bridge responds right now; start() resolves
+  // whether it came up.
   MM.bridgeControl = {
     refresh: _poll,
+    isUp:    _probe,
     start:   _onStartClick,
     stop:    _onStopClick
   };

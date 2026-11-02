@@ -688,6 +688,43 @@ contextBridge.exposeInMainWorld('electronAPI', {
     });
   },
 
+  /**
+   * Read the Nomad job files the Startup settings name. An entry is a job
+   * file, or a folder whose *.hcl and *.nomad files (not its subfolders)
+   * are all taken, in name order.
+   * @param {string[]} entries - Absolute paths.
+   * @returns {Promise<Array<{path: string, content?: string, error?: string}>>}
+   */
+  /**
+   * True when DASGUI_NO_AUTOSTART=1: open the GUI without its Startup
+   * steps (the GUI probes, or one session past a broken startup).
+   */
+  autoStartDisabled: () => process.env.DASGUI_NO_AUTOSTART === '1',
+
+  readJobFiles: (entries) => {
+    const isJob = (name) => /\.(hcl|nomad)$/i.test(name);
+    const out = [];
+    for (const entry of (entries || [])) {
+      let stat;
+      try { stat = fs.statSync(entry); }
+      catch (e) { out.push({ path: entry, error: 'not found' }); continue; }
+      let files = [entry];
+      if (stat.isDirectory()) {
+        try {
+          files = fs.readdirSync(entry).filter(isJob).sort()
+            .map((name) => path.join(entry, name))
+            .filter((fp) => { try { return fs.statSync(fp).isFile(); } catch (e) { return false; } });
+        } catch (e) { out.push({ path: entry, error: e.message }); continue; }
+        if (!files.length) { out.push({ path: entry, error: 'no .hcl or .nomad files in this folder' }); continue; }
+      }
+      for (const fp of files) {
+        try { out.push({ path: fp, content: fs.readFileSync(fp, 'utf8') }); }
+        catch (e) { out.push({ path: fp, error: e.message }); }
+      }
+    }
+    return Promise.resolve(out);
+  },
+
   // ---- Bridge Process Management ----
 
   /**

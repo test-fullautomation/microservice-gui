@@ -46,6 +46,10 @@ app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 process.env.DASGUI_IS_PACKAGED = '0';
+// Unpackaged, the preload reads electron/settings.json in the source tree:
+// its Startup steps would start a bridge, Consul and Nomad on their real
+// ports.
+process.env.DASGUI_NO_AUTOSTART = '1';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

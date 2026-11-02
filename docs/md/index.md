@@ -123,6 +123,44 @@ without the developer role.
     still call its endpoints; keep the bridge on `localhost` (see
     [Bridge security](#bridge-security-allowed-origins)).
 
+## Startup: services ready when the GUI opens
+
+The desktop app can bring up everything the services need as it opens,
+so an operator does not start the bridge, Consul, Nomad and the jobs by
+hand. *Settings → Startup*, saved in `settings.json`:
+
+| Setting | Key | Starts |
+|---|---|---|
+| Start the bridge | `autoStartBridge` | the bridge, as the toolbar ▶ does |
+| Start a local Consul agent | `autoStartConsul` | `consul agent -dev` on `127.0.0.1:8500`, and lists it in the Services view |
+| Start a local Nomad agent | `autoStartNomad` | `nomad agent -dev` on `127.0.0.1:4646` |
+| Nomad jobs to run | `autoStartJobs` | each job file, in order; a folder runs every `.hcl` and `.nomad` file in it |
+
+```json
+{
+  "autoStartBridge": true,
+  "autoStartConsul": true,
+  "autoStartNomad": true,
+  "autoStartJobs": ["C:\\MyServices\\deploy", "C:\\MyServices\\extra.nomad.hcl"]
+}
+```
+
+- The steps run in the order of the table. Consul, Nomad and the jobs go
+  through the bridge, so any of them starts it too.
+- Whatever already runs is used as it is: an agent left running by the
+  last session is not started twice, and a job submitted again with the
+  same spec changes nothing.
+- Jobs run on the Nomad started here, or else on the one the Nomad tab
+  last connected to.
+- The first step that fails stops the rest, with the error the manual
+  button would show. A job that fails is reported; the other jobs still
+  run.
+- Nothing is stopped when the GUI closes, as with the bridge.
+- `DASGUI_NO_AUTOSTART=1` opens the GUI without these steps (the GUI
+  probes set it).
+
+A browser-hosted GUI does not run them: the bridge serves it.
+
 ## Providing a GUI for a gRPC service
 
 A service registered in Consul is listed in the Services view with a
