@@ -41,3 +41,6 @@ CMakeCache.txt
 
 # Screenshots of failed GUI probes
 test/gui/output/
+/bazel-*
+/node_modules/
+/dist/

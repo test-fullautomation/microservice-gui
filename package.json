@@ -8,6 +8,10 @@
     "dev": "electron . --devTools=true",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win --x64",
+    "dist:portable": "electron-builder --win portable --x64",
+    "dist:linux": "electron-builder --linux deb --x64",
+    "dist:linux:portable": "electron-builder --linux AppImage --x64",
+    "test:build": "node --test test/build-portable.test.cjs",
     "test:gui": "node test/gui/run.js"
   },
   "homepage": "https://github.com/test-fullautomation/python-microservice-base",
@@ -131,6 +135,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "DevAtServGUI",
       "include": "build-resources/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "DevAtServGUI-${version}-portable-${arch}.${ext}"
     },
     "linux": {
       "target": [

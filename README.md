@@ -29,6 +29,84 @@ Creator wizard, equivalent to `mb-scaffold`).
 
 For Consul + Nomad install steps see the MicroserviceBase README (section *Consul + Nomad install*) — won't repeat them here.
 
+## Build installers and portable apps with Bazel
+
+On a Windows x64 or Linux x64 build host, install Bazelisk (or Bazel 9.1.0),
+then run from this directory:
+
+```sh
+bazel build //:installer
+bazel build //:portable
+```
+
+The two targets are independent and can also be built together:
+`bazel build //:installer //:portable`.
+
+| Target | Windows x64 output in `bazel-bin` | Linux x64 output in `bazel-bin` |
+|---|---|---|
+| `//:installer` | `DevAtServGUI-installer-x64.exe` (NSIS) | `DevAtServGUI-installer-x64.deb` |
+| `//:portable` | `DevAtServGUI-portable-x64.exe` | `DevAtServGUI-portable-x64.AppImage` |
+
+Build on the matching OS; cross-compilation is not supported. The Windows
+installer retains its wizard, shortcuts, and custom `installer.nsh` hooks.
+The Linux installer retains the existing Debian dependencies and post-install /
+post-remove scripts. On Debian/Ubuntu build hosts, install `fakeroot`, `dpkg`,
+and `rpm` (`sudo apt-get install fakeroot dpkg rpm`) for Electron Builder's
+Linux packaging tools.
+
+Portable builds do not run the installer hooks or install shortcuts. Run the
+Windows executable directly; its launcher extracts the payload to a temporary
+directory. On Linux, run `chmod +x DevAtServGUI-portable-x64.AppImage` if needed,
+then execute it. The target machine needs FUSE 2 (`libfuse2` on Ubuntu 22.04,
+`libfuse2t64` on Ubuntu 24.04), or launch with `--appimage-extract-and-run`.
+Settings and runtime data still use the existing user profile directory;
+portable does not mean all user data is stored next to the executable.
+
+Bazel downloads Node.js 22.14.0 and installs the dependencies from
+`package-lock.json` with `npm ci` in an external repository. It does not need
+a global Node/npm installation or write `node_modules`/`dist` into this checkout.
+Packaging runs locally on Windows/Linux x64 in a disposable staging directory. Network
+access is required for npm dependencies, Electron, and Electron Builder tools;
+this packaging action is not suitable for sandboxed/offline remote execution.
+
+This bundles the GUI, not a self-contained Python/Consul/Nomad runtime. The
+runtime prerequisites above still apply. Existing wheels and helper installers
+in `build-resources/installers` are included, but the build does not generate a
+MicroserviceBase wheel from a parent checkout. Examples come from this repo's
+`examples` directory.
+
+### Use from another Bazel module
+
+For a sibling checkout, add to the consuming repository's `MODULE.bazel`:
+
+```starlark
+bazel_dep(name = "microservice_gui", version = "2.2.0")
+local_path_override(
+  module_name = "microservice_gui",
+  path = "../microservice-gui",
+)
+```
+
+Then build `bazel build @microservice_gui//:installer` or
+`bazel build @microservice_gui//:portable`, or reference either label
+from a distribution target's `srcs`. The module is not published to the Bazel
+Central Registry, so an override is required.
+
+### Build without Bazel
+
+With Node.js and npm installed, output is written to `dist`:
+
+| Format | Windows | Linux |
+|---|---|---|
+| Installer | `build.bat` or `npm run dist` | `./build.sh --installer` or `npm run dist:linux` |
+| Portable | `build.bat --portable` or `npm run dist:portable` | `./build.sh --portable` or `npm run dist:linux:portable` |
+
+`build.bat --pack` / `./build.sh --pack` keep the unpacked directory mode.
+Without arguments, `build.sh` retains the existing AppImage + deb build and
+Python wheel preparation. The npm commands only package; run `npm ci` first.
+
+Run the packaging checks with `npm run test:build` (no npm install required).
+
 ## Install (step-by-step)
 
 ### 1. Install Node.js + npm
