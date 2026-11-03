@@ -557,6 +557,7 @@
         <li><strong>Consul executable</strong> / <strong>Nomad executable</strong> &mdash; used when starting a local agent from the Service Network view.  Looked up in this order: this setting, <code>PATH</code>, <code>%ProgramFiles%\HashiCorp\</code>.  Leave empty to use <code>PATH</code>.</li>
         <li><strong>Broker Host</strong> / <strong>Broker Port</strong> &mdash; the RabbitMQ broker of the legacy transport.</li>
         <li><strong>Bridge Port</strong> &mdash; where the FastAPI bridge listens (default <code>1112</code>).</li>
+        <li><strong>Startup</strong> (desktop app) &mdash; what to start when the GUI opens, so the services are ready without clicking through the bridge, Consul and Nomad: the bridge, a local Consul agent (dev mode, <code>127.0.0.1:8500</code>), a local Nomad agent (dev mode, <code>127.0.0.1:4646</code>), and the Nomad jobs to run, one file or folder per line (a folder runs every <code>.hcl</code> and <code>.nomad</code> file in it).  They start in that order; whatever is already running is used as it is, and the first step that fails stops the rest with its reason.  Consul, Nomad and the jobs need the bridge, so they start it too.  Nothing is stopped when the GUI closes.  Set <code>DASGUI_NO_AUTOSTART=1</code> to open the GUI once without these steps.</li>
       </ul>
     </section>
 

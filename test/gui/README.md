@@ -45,6 +45,9 @@ there:
   (with its child processes) at the end. The GUI is pointed at that bridge;
   the desktop app's default would reach the user's bridge on 1112.
 - Test projects are created in temporary folders.
+- *Settings → Startup* does not run (`DASGUI_NO_AUTOSTART=1`): unpackaged,
+  the preload reads `electron/settings.json` in the source tree, and its
+  steps would start a bridge, Consul and Nomad on their real ports.
 - The page's calls to the Electron main process (window plugins, native
   dialogs) get neutral answers; probes of those need the real main process.
 
@@ -52,6 +55,7 @@ there:
 
 | File | Covers | Needs |
 |---|---|---|
+| `test_gui_autostart.js` | *Settings → Startup*: bridge, Consul, Nomad and jobs in order, a folder's job files, nothing started twice, the first failing step stopping the rest, jobs on the Nomad tab's agent, bad job entries reported, the Settings section (the bridge, Consul and Nomad calls are answered in the page) | nothing |
 | `test_gui_view_roles.js` | `?view=` roles: tabs shown or hidden, views outside the roles refused, ribbon opens on click | nothing |
 | `test_gui_tile_groups.js` | tile groups: headers before their first tile, full-width rows, a collapsed group hidden *and* suspended, expand with the mouse, collapse with Enter, a hidden component resuming only open groups, the choice remembered, `mountComponent` with `groups` | nothing |
 | `test_gui_project_runners.js` | a non-Robot runner (Temporal): the *Initialize* dialog's runners, structure and preselection, the project view's groups and *New test* form in the runner's words, the pytest run command, its syntax check | bridge Python |

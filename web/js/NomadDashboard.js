@@ -1131,6 +1131,21 @@
     deactivate: function () {
       _active = false;
       _stopPolling();
+    },
+
+    /**
+     * Take over an agent the GUI started outside this tab (AutoStart), as
+     * if Start Agent had been clicked here: remember its URL, offer Stop
+     * Agent when it is the bridge's own agent.
+     */
+    adopt: function (url, managed) {
+      _saveUrl(url);
+      _currentUrl = url;
+      _setManaged(!!managed);
+      if (_active) {
+        _fetchAndRender();
+        _startPolling();
+      }
     }
   };
 

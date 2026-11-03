@@ -85,10 +85,10 @@ chamber, the bench signals and the hello service on one stage:
 
 | When you need… | Go to |
 |---|---|
-| The actual framework architecture (hexagonal layers, runtime model) | [`../../../../docs/architecture/`](../../../../docs/architecture/overview.md) (repo-level) |
-| A toolchain setup guide (MSYS2, Qt6::Grpc, vcpkg + Qt MinGW) | [`../../../../examples/docs/md/index.md`](../../../../examples/docs/md/index.md) |
+| The actual framework architecture (hexagonal layers, runtime model) | [MicroserviceBase `docs/architecture/`](https://github.com/test-fullautomation/python-microservice-base/blob/develop/docs/architecture/overview.md) (repo-level) |
+| A toolchain setup guide (MSYS2, Qt6::Grpc, vcpkg + Qt MinGW) | [MicroserviceBase `examples/docs/md/index.md`](https://github.com/test-fullautomation/python-microservice-base/blob/develop/examples/docs/md/index.md) |
 | The lighter in-app help (loaded inside the running GUI) | `../../web/docs/help.html` (or click the **?** in the navbar when the GUI is running) |
-| Worked examples (C++ and Python services, a client, multi-proto projects) | [`../../../../examples/README.md`](../../../../examples/README.md) |
+| Worked examples (C++ and Python services, a client, multi-proto projects) | [MicroserviceBase `examples/README.md`](https://github.com/test-fullautomation/python-microservice-base/blob/develop/examples/README.md) |
 
 ## Views: user, admin, developer
 
@@ -122,6 +122,44 @@ without the developer role.
     A view only hides parts of the GUI. Anyone who can reach the bridge can
     still call its endpoints; keep the bridge on `localhost` (see
     [Bridge security](#bridge-security-allowed-origins)).
+
+## Startup: services ready when the GUI opens
+
+The desktop app can bring up everything the services need as it opens,
+so an operator does not start the bridge, Consul, Nomad and the jobs by
+hand. *Settings → Startup*, saved in `settings.json`:
+
+| Setting | Key | Starts |
+|---|---|---|
+| Start the bridge | `autoStartBridge` | the bridge, as the toolbar ▶ does |
+| Start a local Consul agent | `autoStartConsul` | `consul agent -dev` on `127.0.0.1:8500`, and lists it in the Services view |
+| Start a local Nomad agent | `autoStartNomad` | `nomad agent -dev` on `127.0.0.1:4646` |
+| Nomad jobs to run | `autoStartJobs` | each job file, in order; a folder runs every `.hcl` and `.nomad` file in it |
+
+```json
+{
+  "autoStartBridge": true,
+  "autoStartConsul": true,
+  "autoStartNomad": true,
+  "autoStartJobs": ["C:\\MyServices\\deploy", "C:\\MyServices\\extra.nomad.hcl"]
+}
+```
+
+- The steps run in the order of the table. Consul, Nomad and the jobs go
+  through the bridge, so any of them starts it too.
+- Whatever already runs is used as it is: an agent left running by the
+  last session is not started twice, and a job submitted again with the
+  same spec changes nothing.
+- Jobs run on the Nomad started here, or else on the one the Nomad tab
+  last connected to.
+- The first step that fails stops the rest, with the error the manual
+  button would show. A job that fails is reported; the other jobs still
+  run.
+- Nothing is stopped when the GUI closes, as with the bridge.
+- `DASGUI_NO_AUTOSTART=1` opens the GUI without these steps (the GUI
+  probes set it).
+
+A browser-hosted GUI does not run them: the bridge serves it.
 
 ## Providing a GUI for a gRPC service
 
@@ -452,7 +490,7 @@ services, and in which order, is a **composition**:
   closes it when no tile needs it. Names the catalog does not know show
   *unknown signal* and fill in once their service is up. How the host bus
   in the window and the bridge share this work is drawn in
-  [Diagrams → Live signals](../../../../docs/architecture/diagrams.md#live-signals-host-bus-and-bridge).
+  [Diagrams → Live signals](https://github.com/test-fullautomation/python-microservice-base/blob/develop/docs/architecture/diagrams.md#live-signals-host-bus-and-bridge).
 - `node tools/endo-lint.js <composition.json>` lints a composition in CI.
   `test/endo/fixtures/bench/` holds the proposal's prototype modules and
   compositions; `test/endo/test_endo_bench.js` tests them.
