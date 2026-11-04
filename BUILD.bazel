@@ -29,7 +29,7 @@ filegroup(
             "**/*.pid",
             "graph-studio/tests/**",
         ],
-    ) + ["package.json", "package-lock.json"],
+    ) + ["package.json", "package-lock.json", "//tools:after-pack.cjs", "//tools:smoke-python.cjs"],
 )
 
 electron_portable(

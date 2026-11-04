@@ -27,6 +27,7 @@
     "unzipper": "^0.10.14"
   },
   "build": {
+    "afterPack": "tools/after-pack.cjs",
     "appId": "com.bosch.devatservgui",
     "productName": "DevAtServGUI",
     "directories": {
@@ -35,6 +36,7 @@
     },
     "files": [
       "electron/**/*",
+      "tools/smoke-python.cjs",
       "web/**/*",
       "graph-studio/**/*",
       "!web/services/**",
@@ -46,6 +48,11 @@
       "!graph-studio/README.md"
     ],
     "extraResources": [
+      {
+        "from": ".python-runtime",
+        "to": "python-runtime",
+        "filter": ["**/*"]
+      },
       {
         "from": "python",
         "to": "python",
@@ -167,9 +174,7 @@
         "xdg-utils",
         "libatspi2.0-0",
         "libuuid1",
-        "libsecret-1-0",
-        "python3",
-        "python3-venv"
+        "libsecret-1-0"
       ]
     }
   },

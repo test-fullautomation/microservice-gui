@@ -63,8 +63,8 @@ def _electron_package_impl(ctx):
     ]))
     ctx.actions.run(
         executable = ctx.executable.node,
-        arguments = [ctx.file._builder.path, manifest.path, ctx.file._npm_package.path, output.path, ctx.attr.platform, ctx.attr.format],
-        inputs = depset(ctx.files.srcs + [manifest, ctx.file._builder, ctx.file._npm_package], transitive = [ctx.attr._dependencies[DefaultInfo].files]),
+        arguments = [ctx.file._builder.path, manifest.path, ctx.file._npm_package.path, output.path, ctx.attr.platform, ctx.attr.format, ctx.file._runtime_metadata.path],
+        inputs = depset(ctx.files.srcs + [manifest, ctx.file._builder, ctx.file._smoke, ctx.file._npm_package, ctx.file._runtime_metadata], transitive = [ctx.attr._dependencies[DefaultInfo].files, ctx.attr._runtime[DefaultInfo].files]),
         outputs = [output],
         mnemonic = "ElectronPackage",
         progress_message = "Packaging %s x64 Electron %s" % (ctx.attr.platform, ctx.attr.format),
@@ -82,6 +82,9 @@ _electron_package = rule(
         "node": attr.label(mandatory = True, executable = True, cfg = "exec", allow_single_file = True),
         "_package": attr.label(default = Label("//:package.json"), allow_single_file = True),
         "_builder": attr.label(default = Label("//tools:build-portable.cjs"), allow_single_file = True),
+        "_smoke": attr.label(default = Label("//tools:smoke-python.cjs"), allow_single_file = True),
+        "_runtime_metadata": attr.label(default = Label("@gui_python//:runtime/runtime.json"), allow_single_file = True),
+        "_runtime": attr.label(default = Label("@gui_python//:files")),
         "_npm_package": attr.label(default = Label("@gui_npm//:package.json"), allow_single_file = True),
         "_dependencies": attr.label(default = Label("@gui_npm//:dependencies")),
     },

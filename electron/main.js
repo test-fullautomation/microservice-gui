@@ -43,6 +43,13 @@ const iconPath = app.isPackaged
 process.env.DASGUI_IS_PACKAGED = app.isPackaged ? '1' : '0';
 process.env.DASGUI_USER_DATA = app.getPath('userData');
 process.env.DASGUI_RESOURCES_PATH = process.resourcesPath || '';
+if (app.isPackaged) {
+  delete process.env.PYTHONHOME;
+  delete process.env.PYTHONPATH;
+  delete process.env.PYTHONUSERBASE;
+  process.env.PYTHONNOUSERSITE = '1';
+  process.env.PYTHONDONTWRITEBYTECODE = '1';
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -108,7 +115,17 @@ function createTray() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (app.commandLine.hasSwitch('runtime-smoke-test')) {
+    try {
+      await require('../tools/smoke-python.cjs').smokePython(process.resourcesPath);
+      app.exit(0);
+    } catch (error) {
+      console.error(error);
+      app.exit(1);
+    }
+    return;
+  }
   // In packaged mode, intercept file:// requests for web/services/*
   // and redirect them to the writable user data directory.
   // Service plugins are extracted to %APPDATA%/DevAtServGUI/web-services/

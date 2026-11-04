@@ -30,7 +30,7 @@ function packagingPlan(platform, format) {
   throw new Error(`Unsupported build platform: ${platform}`);
 }
 
-async function build(manifestPath, npmPackagePath, outputPath, platform, format) {
+async function build(manifestPath, npmPackagePath, outputPath, platform, format, runtimeMetadata) {
   const plan = packagingPlan(platform, format);
   if (process.platform !== platform || process.arch !== 'x64') {
     throw new Error(`The ${format} target requires a ${platform} x64 build host.`);
@@ -49,6 +49,8 @@ async function build(manifestPath, npmPackagePath, outputPath, platform, format)
     const project = path.join(staging, 'app');
     fs.mkdirSync(project);
     stageSources(JSON.parse(fs.readFileSync(manifestPath, 'utf8')), project);
+    fs.cpSync(path.dirname(path.resolve(runtimeMetadata)), path.join(project, '.python-runtime'),
+      { recursive: true, dereference: true });
     fs.cpSync(path.join(path.dirname(path.resolve(npmPackagePath)), 'node_modules'),
       path.join(project, 'node_modules'), { recursive: true, dereference: true });
     const builder = require(path.join(project, 'node_modules', 'electron-builder'));

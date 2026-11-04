@@ -5,6 +5,30 @@ const path = require('node:path');
 const { test } = require('node:test');
 const { stageSources, packagingPlan } = require('../tools/build-portable.cjs');
 const config = require('../package.json');
+const { bundledPython } = require('../electron/python-runtime');
+const { smokePython } = require('../tools/smoke-python.cjs');
+
+test('packaged Python resolves inside resources, including paths with spaces', context => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gui runtime test '));
+  context.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const [platform, relative] of [['win32', 'python.exe'], ['linux', 'bin/python3.12']]) {
+    const executable = path.join(root, 'python-runtime', relative);
+    fs.mkdirSync(path.dirname(executable), { recursive: true });
+    fs.writeFileSync(executable, 'runtime fixture');
+    fs.chmodSync(executable, 0o755);
+    assert.equal(bundledPython(root, platform), executable);
+  }
+});
+
+test('missing bundled Python never falls back to system Python', () => {
+  assert.throws(() => bundledPython(path.join(os.tmpdir(), 'missing-gui-runtime')),
+    /Bundled Python runtime is missing/);
+});
+
+test('packaging smoke test fails if Python was not included', async () => {
+  await assert.rejects(smokePython(path.join(os.tmpdir(), 'missing-gui-runtime')),
+    /Bundled Python missing/);
+});
 
 test('default Windows installer configuration is preserved alongside portable', () => {
   assert.equal(config.build.win.target, 'nsis');
@@ -38,6 +62,10 @@ test('unsupported platforms and formats are rejected', () => {
 test('packaged resources stay inside the standalone checkout', () => {
   const root = path.resolve(__dirname, '..');
   for (const resource of config.build.extraResources) {
+    if (resource.from === '.python-runtime') {
+      assert.equal(resource.to, 'python-runtime');
+      continue;
+    }
     const source = path.resolve(root, resource.from);
     assert.ok(!path.relative(root, source).startsWith('..'), resource.from);
     assert.ok(fs.existsSync(source), resource.from);

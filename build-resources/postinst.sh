@@ -38,61 +38,12 @@ if [[ -f "$APP_DIR/chrome-sandbox" ]]; then
     chmod 4755 "$APP_DIR/chrome-sandbox" || true
 fi
 
-# MicroserviceBase and the bridge, in a venv of its own: Debian 12 and
-# Ubuntu 23.04+ refuse pip installs into the system Python (PEP 668).
-# Offline from the bundled wheelhouse when it has this Python's wheels,
-# else from the package index (through apt's proxy if one is set).
-PY_ENV="$APP_DIR/python-env"
-PY_BIN="$PY_ENV/bin/python3"
-MSB_WHEEL="$(ls "$APP_RESOURCES"/installers/microservicebase-*-py3-none-any.whl 2>/dev/null | head -n1 || true)"
-BRIDGE_WHEEL="$(ls "$APP_RESOURCES"/installers/microservice_gui_bridge-*-py3-none-any.whl 2>/dev/null | head -n1 || true)"
-echo
-echo "DevAtServGUI: installing MicroserviceBase and the bridge into $PY_ENV"
-if [[ -z "$MSB_WHEEL" || -z "$BRIDGE_WHEEL" ]]; then
-    echo "  (the MicroserviceBase or bridge wheel is missing in $APP_RESOURCES/installers; skipped)"
-elif ! command -v python3 >/dev/null 2>&1; then
-    echo "  python3 NOT FOUND; install it, then: sudo dpkg-reconfigure devatservgui"
-elif ! { [[ -x "$PY_BIN" ]] || python3 -m venv "$PY_ENV"; }; then
-    rm -rf "$PY_ENV"
-    echo "  could not create the venv; install python3-venv, then: sudo dpkg-reconfigure devatservgui"
-else
-    PIP=("$PY_BIN" -m pip install --quiet --no-cache-dir --disable-pip-version-check --upgrade)
-    if [[ -d "$APP_RESOURCES/wheelhouse" ]] && \
-       "${PIP[@]}" --no-index --find-links "$APP_RESOURCES/wheelhouse" "$MSB_WHEEL" "$BRIDGE_WHEEL"; then
-        echo "  installed from the bundled wheels"
-    else
-        echo "  bundled wheels do not fit this Python; downloading the dependencies"
-        if [[ -z "${https_proxy:-}${HTTPS_PROXY:-}" ]] && command -v apt-config >/dev/null 2>&1; then
-            _proxy="$(apt-config shell P Acquire::https::Proxy 2>/dev/null; apt-config shell P Acquire::http::Proxy 2>/dev/null)"
-            _proxy="$(eval "$_proxy"; echo "${P:-}")"
-            [[ -n "$_proxy" && "$_proxy" != DIRECT ]] && export https_proxy="$_proxy" http_proxy="$_proxy"
-        fi
-        if "${PIP[@]}" "$MSB_WHEEL" "$BRIDGE_WHEEL"; then
-            echo "  installed"
-        else
-            echo "  FAILED; retry with network access: sudo dpkg-reconfigure devatservgui"
-        fi
-    fi
-    # Point the packaged default settings (root-owned, copied to new users)
-    # at the venv; it ships the Windows interpreter path. Users' own
-    # settings are not touched as root: the app picks the venv itself when
-    # theirs name a system Python or a Windows path (preload.js).
-    _settings="$APP_RESOURCES/settings.json"
-    if [[ -x "$PY_BIN" && -f "$_settings" && ! -L "$_settings" ]]; then
-        python3 - "$_settings" "$PY_BIN" <<'EOF' || true
-import json, sys
-path, py = sys.argv[1], sys.argv[2]
-with open(path, encoding="utf-8") as f:
-    s = json.load(f)
-v = s.get("pythonPath", "")
-if v in ("", "python", "python3", "/usr/bin/python", "/usr/bin/python3") or "\\" in v or v[1:3] in (":/", ":\\"):
-    s["pythonPath"] = py
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(s, f, indent=2)
-    print("  settings: pythonPath set in", path)
-EOF
-    fi
+PY_BIN="$APP_RESOURCES/python-runtime/bin/python3.12"
+if [[ ! -x "$PY_BIN" ]]; then
+    echo "ERROR: bundled Python runtime is missing: $PY_BIN" >&2
+    exit 1
 fi
+echo "DevAtServGUI: using bundled Python runtime; no system Python or pip install required."
 
 echo
 echo "DevAtServGUI: post-install infrastructure check"
