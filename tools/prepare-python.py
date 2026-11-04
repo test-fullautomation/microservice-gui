@@ -9,6 +9,8 @@ from pathlib import Path
 def main() -> None:
     source, environment, destination = map(Path, sys.argv[1:])
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    for build_marker in (destination / "BUILD", destination / "BUILD.bazel"):
+        build_marker.unlink(missing_ok=True)
     packages = Path("Lib/site-packages") if sys.platform == "win32" else Path("lib/python3.12/site-packages")
     shutil.copytree(
         environment / packages,
