@@ -18,6 +18,7 @@ filegroup(
             "graph-studio/**",
             "docs/html/**",
             "docs/img/**",
+            "bridge/microservice_gui_bridge/**/*.py",
             "python/**",
             "examples/**",
             "build-resources/**",

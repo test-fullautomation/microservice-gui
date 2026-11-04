@@ -72,6 +72,14 @@ test('packaged resources stay inside the standalone checkout', () => {
   }
 });
 
+test('bridge Python package is included for the packaged launcher', () => {
+  const bridge = config.build.extraResources.find(
+    resource => resource.to === 'bridge/microservice_gui_bridge');
+  assert.ok(bridge);
+  assert.equal(bridge.from, 'bridge/microservice_gui_bridge');
+  assert.deepEqual(bridge.filter, ['**/*.py']);
+});
+
 test('staging copies declared sources without modifying them', context => {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'gui-staging-test-'));
   context.after(() => fs.rmSync(temporary, { recursive: true, force: true }));

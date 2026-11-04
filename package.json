@@ -54,6 +54,11 @@
         "filter": ["**/*"]
       },
       {
+        "from": "bridge/microservice_gui_bridge",
+        "to": "bridge/microservice_gui_bridge",
+        "filter": ["**/*.py"]
+      },
+      {
         "from": "python",
         "to": "python",
         "filter": [
