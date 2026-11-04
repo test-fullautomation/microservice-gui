@@ -18,7 +18,12 @@ Creator wizard, equivalent to `mb-scaffold`).
 | Inspect a running service, browse its gRPC methods, send test calls | **Services** mode (covered in the Operating doc above) |
 | Use the in-app help (lighter, embedded inside the GUI itself) | Click the **?** in the navbar — renders `web/docs/help.html` |
 
-## Prerequisites
+## Development prerequisites
+
+Bazel-built installer and portable packages include CPython and the Python
+bridge dependencies. End users do not need to install Python, pip, Node.js,
+or MicroserviceBase. The prerequisites below apply to development checkouts;
+Consul/Nomad are still external infrastructure for features that use them.
 
 | Required | Why | Verify |
 |---|---|---|
@@ -69,11 +74,48 @@ Packaging runs locally on Windows/Linux x64 in a disposable staging directory. N
 access is required for npm dependencies, Electron, and Electron Builder tools;
 this packaging action is not suitable for sandboxed/offline remote execution.
 
-This bundles the GUI, not a self-contained Python/Consul/Nomad runtime. The
-runtime prerequisites above still apply. Existing wheels and helper installers
-in `build-resources/installers` are included, but the build does not generate a
-MicroserviceBase wheel from a parent checkout. Examples come from this repo's
-`examples` directory.
+The GUI and its Python bridge runtime are bundled together. Consul/Nomad are
+external services/tools; they are not part of the Python runtime. Examples
+come from this repo's `examples` directory.
+
+### Bundled Python runtime
+
+The Bazel module downloads CPython 3.12.13 through checksum-pinned uv 0.11.25.
+`pyproject.toml` declares Python dependencies and `uv.lock` pins the resolved
+packages. MicroserviceBase is fetched from
+<https://github.com/test-fullautomation/microservice-base> at commit
+`84336f316568adac53ff38f1acc7f0803319c3c4`, not from PyPI. This revision is
+compatible with the existing 2.2.0 bridge API; newer 3.0.0 revisions moved the
+bridge into a separate package and require an explicit migration.
+
+Bazel builds any source dependency on the build host, then copies the managed
+standalone interpreter and installed packages into `resources/python-runtime`.
+It does not ship a build-machine venv. Packaged apps always use this interpreter,
+including when old user settings contain a different Python path. Python user
+site-packages, `PYTHONHOME`, and `PYTHONPATH` do not supply runtime dependencies.
+Developer mode retains the configurable interpreter behavior.
+
+The Electron Builder `afterPack` hook starts the bridge from the packaged
+resources, removes system Python from PATH, and checks `/openapi.json`. Missing
+runtime files, import errors, or a backend that does not start fail the build.
+CI additionally launches the final portable artifact with
+`--runtime-smoke-test` on both Windows and Linux before upload. This mode checks
+the backend and exits without opening the GUI. Linux CI uses Xvfb with AppImage
+extract-and-run mode; `--no-sandbox` is used only for that CI smoke test.
+
+Runtime/dependency downloads happen only during build, never on first launch.
+Update dependencies with `uv lock --python 3.12` and commit the updated lockfile.
+The runtime still requires a supported Windows/Linux desktop environment and
+its native Electron libraries. Linux AppImages do not run on every distribution
+or on a minimal server image without desktop libraries. Enterprise execution
+policies may block portable binaries; do not bypass those policies.
+
+Validation status: packaged-runtime execution is not yet verified on the local
+managed Windows machine because Group Policy blocks the downloaded interpreter.
+The new Windows/Linux CI smoke steps must pass before publishing these packages.
+The explicit WebSocket transport dependency also needs resolution and testing;
+its addition was deferred when the package index became unreachable. HTTP-only
+backend smoke tests do not establish that live WebSocket features work.
 
 ### Use from another Bazel module
 
@@ -104,6 +146,9 @@ With Node.js and npm installed, output is written to `dist`:
 `build.bat --pack` / `./build.sh --pack` keep the unpacked directory mode.
 Without arguments, `build.sh` retains the existing AppImage + deb build and
 Python wheel preparation. The npm commands only package; run `npm ci` first.
+Direct Electron Builder builds also require a prepared `.python-runtime`
+resource. Use the Bazel targets for complete standalone release packages;
+`afterPack` rejects a package with a missing or unusable Python runtime.
 
 Run the packaging checks with `npm run test:build` (no npm install required).
 
