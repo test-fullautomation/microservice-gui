@@ -1,7 +1,9 @@
 const fs = require('node:fs');
+const http = require('node:http');
 const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
+const { createHash, randomBytes } = require('node:crypto');
 const { spawn } = require('node:child_process');
 
 async function availablePort() {
@@ -13,6 +15,52 @@ async function availablePort() {
   const port = server.address().port;
   await new Promise(resolve => server.close(resolve));
   return port;
+}
+
+async function websocketHandshake(port) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const key = randomBytes(16).toString('base64');
+    const expectedAccept = createHash('sha1')
+      .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+      .digest('base64');
+    const finish = error => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve();
+    };
+    const request = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path: '/api/signals/stream',
+      headers: {
+        Connection: 'Upgrade',
+        Upgrade: 'websocket',
+        'Sec-WebSocket-Key': key,
+        'Sec-WebSocket-Version': '13',
+        Origin: 'file://',
+      },
+    });
+    request.setTimeout(5000, () => request.destroy(new Error('WebSocket handshake timed out')));
+    request.once('upgrade', (response, socket) => {
+      socket.destroy();
+      if (response.statusCode !== 101 || response.headers['sec-websocket-accept'] !== expectedAccept) {
+        finish(new Error(`Invalid WebSocket handshake: HTTP ${response.statusCode}`));
+      } else {
+        finish();
+      }
+    });
+    request.once('response', response => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', chunk => { body += chunk; });
+      response.once('end', () => finish(new Error(
+        `WebSocket handshake rejected: HTTP ${response.statusCode} ${body}`)));
+    });
+    request.once('error', finish);
+    request.end();
+  });
 }
 
 async function smokePython(resources) {
@@ -46,7 +94,8 @@ async function smokePython(resources) {
         const response = await fetch(`http://127.0.0.1:${port}/openapi.json`,
           { signal: AbortSignal.timeout(1000) });
         if (response.ok && (await response.json()).openapi) {
-          console.log('Bundled Python bridge HTTP smoke test: OK (system Python absent from PATH)');
+          await websocketHandshake(port);
+          console.log('Bundled Python bridge HTTP and WebSocket smoke tests: OK (system Python absent from PATH)');
           return;
         }
       } catch (error) {

@@ -100,7 +100,8 @@ resources, removes system Python from PATH, and checks `/openapi.json`. Missing
 runtime files, import errors, or a backend that does not start fail the build.
 CI additionally launches the final portable artifact with
 `--runtime-smoke-test` on both Windows and Linux before upload. This mode checks
-the backend and exits without opening the GUI. Linux CI uses Xvfb with AppImage
+HTTP health and completes a WebSocket handshake with the live-signal endpoint,
+then exits without opening the GUI. Linux CI uses Xvfb with AppImage
 extract-and-run mode; `--no-sandbox` is used only for that CI smoke test.
 
 Runtime/dependency downloads happen only during build, never on first launch.
@@ -110,12 +111,8 @@ its native Electron libraries. Linux AppImages do not run on every distribution
 or on a minimal server image without desktop libraries. Enterprise execution
 policies may block portable binaries; do not bypass those policies.
 
-Validation status: packaged-runtime execution is not yet verified on the local
-managed Windows machine because Group Policy blocks the downloaded interpreter.
-The new Windows/Linux CI smoke steps must pass before publishing these packages.
-The explicit WebSocket transport dependency also needs resolution and testing;
-its addition was deferred when the package index became unreachable. HTTP-only
-backend smoke tests do not establish that live WebSocket features work.
+Validation status: the Windows portable runtime has been verified locally. The
+Windows/Linux CI smoke steps must pass before publishing these packages.
 
 ### Use from another Bazel module
 
