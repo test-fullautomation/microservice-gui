@@ -44,3 +44,6 @@ test/gui/output/
 /bazel-*
 /node_modules/
 /dist/
+/.python-runtime/
+/.venv/
+**/__pycache__/
