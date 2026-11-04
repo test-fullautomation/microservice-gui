@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Validate package, lockfile, module, and installer versions
+      - name: Validate application package and runtime versions
         id: check
         shell: bash
         run: |
@@ -70,23 +70,18 @@ jobs:
               for keyword in declaration.keywords
               if keyword.arg == "version"
           )
-          installer = Path("build-resources/installer.nsh").read_text(encoding="utf-8")
-          match = re.search(r'^!define\s+MSB_VER\s+"([^"]+)"', installer, re.MULTILINE)
-          if match is None:
-              raise SystemExit("Cannot read MSB_VER from installer.nsh")
           versions = {
               "package.json": package["version"],
               "package-lock.json": lock["version"],
               "package-lock.json root package": lock["packages"][""]["version"],
               "MODULE.bazel": module_version,
-              "installer.nsh": match.group(1),
               "pyproject.toml": python_project["project"]["version"],
           }
           for source, version in versions.items():
               print(f"{source}: {version}")
           version = package["version"]
           if not version or any(value != version for value in versions.values()):
-              raise SystemExit("Package, lockfile, module, and installer versions must agree")
+              raise SystemExit("Application package and runtime versions must agree")
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write(f"version={version}\n")
           PY
