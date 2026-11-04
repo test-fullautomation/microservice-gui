@@ -19,3 +19,10 @@ npm_dependencies(
     node_windows = "@nodejs_windows_amd64//:bin/nodejs/node.exe",
     node_linux = "@nodejs_linux_amd64//:bin/nodejs/bin/node",
 )
+
+python_runtime = use_repo_rule("//tools:python_runtime.bzl", "python_runtime")
+python_runtime(
+    name = "gui_python",
+    manifest = "//:pyproject.toml",
+    lock = "//:uv.lock",
+)

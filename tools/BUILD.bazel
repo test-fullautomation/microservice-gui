@@ -1,1 +1,1 @@
-exports_files(["electron.bzl", "build-portable.cjs"])
+exports_files(["electron.bzl", "build-portable.cjs", "python_runtime.bzl", "prepare-python.py"])

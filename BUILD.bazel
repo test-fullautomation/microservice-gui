@@ -2,7 +2,12 @@ load("//tools:electron.bzl", "electron_installer", "electron_portable")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["package.json", "package-lock.json"])
+exports_files([
+    "package.json",
+    "package-lock.json",
+    "pyproject.toml",
+    "uv.lock",
+])
 
 filegroup(
     name = "sources",
