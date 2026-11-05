@@ -1,7 +1,9 @@
 #!/bin/bash
 # Build DevAtServGUI package for Linux
-# Usage: ./build.sh [--pack]
+# Usage: ./build.sh [--pack | --installer | --portable]
 #   --pack  Build unpacked directory only (faster, for testing)
+#   --installer Build deb only
+#   --portable Build AppImage only
 #   (default) Build AppImage + deb
 
 set -e
@@ -55,6 +57,12 @@ echo "[4/4] Building..."
 if [ "$1" = "--pack" ]; then
     echo "Building unpacked directory..."
     npx electron-builder --dir
+elif [ "$1" = "--installer" ]; then
+    echo "Building Linux installer..."
+    npx electron-builder --linux deb --x64
+elif [ "$1" = "--portable" ]; then
+    echo "Building Linux portable app..."
+    npx electron-builder --linux AppImage --x64
 else
     echo "Building Linux packages..."
     npx electron-builder --linux

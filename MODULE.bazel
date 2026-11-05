@@ -1,0 +1,28 @@
+module(
+    name = "microservice_gui",
+    version = "2.2.0",
+    bazel_compatibility = [">=8.0.0"],
+)
+
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_nodejs", version = "6.7.7")
+
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain(node_version = "22.14.0")
+use_repo(node, "nodejs_windows_amd64", "nodejs_linux_amd64")
+
+npm_dependencies = use_repo_rule("//tools:electron.bzl", "npm_dependencies")
+npm_dependencies(
+    name = "gui_npm",
+    package_json = "//:package.json",
+    package_lock = "//:package-lock.json",
+    node_windows = "@nodejs_windows_amd64//:bin/nodejs/node.exe",
+    node_linux = "@nodejs_linux_amd64//:bin/nodejs/bin/node",
+)
+
+python_runtime = use_repo_rule("//tools:python_runtime.bzl", "python_runtime")
+python_runtime(
+    name = "gui_python",
+    manifest = "//:pyproject.toml",
+    lock = "//:uv.lock",
+)

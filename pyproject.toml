@@ -1,0 +1,16 @@
+[project]
+name = "devatservgui-runtime"
+version = "2.2.0"
+requires-python = "==3.12.*"
+dependencies = [
+    "MicroserviceBase[web]==2.2.0",
+    "pika>=1.3.2,<2",
+    "websockets>=13.0",
+]
+
+[tool.uv]
+package = false
+build-constraint-dependencies = ["setuptools==80.9.0", "wheel==0.45.1", "colorama==0.4.6"]
+
+[tool.uv.sources]
+MicroserviceBase = { git = "https://github.com/test-fullautomation/microservice-base.git", rev = "84336f316568adac53ff38f1acc7f0803319c3c4" }

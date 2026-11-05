@@ -1222,6 +1222,9 @@ FunctionEnd
 ; MicroserviceBase custom page — Page Create callback
 ; ===================================================================
 Function MSB_PageCreate
+  ${If} $MSB_DoInstall == "bundled"
+    Abort
+  ${EndIf}
   nsDialogs::Create 1018
   Pop $MSB_Dialog
   ${If} $MSB_Dialog == error
@@ -1303,7 +1306,7 @@ FunctionEnd
 ; customInit — pre-populate Python path with auto-detected default
 ; ===================================================================
 !macro customInit
-  StrCpy $MSB_DoInstall "1"
+  StrCpy $MSB_DoInstall "bundled"
   StrCpy $MSB_PythonPath ""
 
   ; Pre-select project standard location if it exists (64-bit Program Files)

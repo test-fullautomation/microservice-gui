@@ -1,0 +1,44 @@
+load("//tools:electron.bzl", "electron_installer", "electron_portable")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "package.json",
+    "package-lock.json",
+    "pyproject.toml",
+    "uv.lock",
+])
+
+filegroup(
+    name = "sources",
+    srcs = glob(
+        [
+            "electron/**",
+            "web/**",
+            "graph-studio/**",
+            "docs/html/**",
+            "docs/img/**",
+            "bridge/microservice_gui_bridge/**/*.py",
+            "python/**",
+            "examples/**",
+            "build-resources/**",
+        ],
+        exclude = [
+            "**/node_modules/**",
+            "**/__pycache__/**",
+            "**/*.log",
+            "**/*.pid",
+            "graph-studio/tests/**",
+        ],
+    ) + ["package.json", "package-lock.json", "//tools:after-pack.cjs", "//tools:smoke-python.cjs"],
+)
+
+electron_portable(
+    name = "portable",
+    srcs = [":sources"],
+)
+
+electron_installer(
+    name = "installer",
+    srcs = [":sources"],
+)

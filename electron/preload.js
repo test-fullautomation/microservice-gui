@@ -6,6 +6,7 @@
  */
 
 const { contextBridge, ipcRenderer, shell } = require('electron');
+const { bundledPython } = require('./python-runtime');
 
 let amqp, fs, os, path, crypto, unzipper, child_process;
 try {
@@ -1038,6 +1039,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 const _SYSTEM_PYTHONS = ['', 'python', 'python3', '/usr/bin/python', '/usr/bin/python3'];
 
 function _pythonOr(configured) {
+  if (_isPackaged) return bundledPython(_resourcesPath);
   const v = String(configured || '').trim().replace(/^(["'])(.*)\1$/, '$2').trim();
   if (process.platform !== 'win32') {
     const windowsPath = /^[A-Za-z]:[\\/]/.test(v) || v.indexOf('\\') >= 0;
