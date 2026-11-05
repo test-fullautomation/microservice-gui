@@ -55,16 +55,23 @@ async function build(manifestPath, npmPackagePath, outputPath, platform, format,
       path.join(project, 'node_modules'), { recursive: true, dereference: true });
     const builder = require(path.join(project, 'node_modules', 'electron-builder'));
     const electron = require(path.join(project, 'node_modules', 'electron', 'package.json'));
-    const artifacts = await builder.build({
-      projectDir: project,
-      targets: builder.Platform[plan.platform].createTarget(plan.target, builder.Arch.x64),
-      publish: 'never',
-      config: {
-        electronVersion: electron.version,
-        directories: { output: path.join(staging, 'dist') },
-        [plan.configKey]: { artifactName: path.basename(output) },
-      },
-    });
+    const originalCwd = process.cwd();
+    let artifacts;
+    try {
+      process.chdir(project);
+      artifacts = await builder.build({
+        projectDir: project,
+        targets: builder.Platform[plan.platform].createTarget(plan.target, builder.Arch.x64),
+        publish: 'never',
+        config: {
+          electronVersion: electron.version,
+          directories: { output: path.join(staging, 'dist') },
+          [plan.configKey]: { artifactName: path.basename(output) },
+        },
+      });
+    } finally {
+      process.chdir(originalCwd);
+    }
     const artifact = artifacts.find(candidate => path.basename(candidate) === path.basename(output));
     if (!artifact) throw new Error(`${format} artifact not produced: ${artifacts.join(', ')}`);
     fs.mkdirSync(path.dirname(output), { recursive: true });
