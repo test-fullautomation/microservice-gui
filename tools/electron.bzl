@@ -54,7 +54,7 @@ npm_dependencies = repository_rule(
 
 def _electron_package_impl(ctx):
     extension = "exe" if ctx.attr.platform == "win32" else ("deb" if ctx.attr.format == "installer" else "AppImage")
-    output = ctx.actions.declare_file("DevAtServGUI-%s-x64.%s" % (ctx.attr.format, extension))
+    output = ctx.actions.declare_directory("DevAtServGUI-unpacked-x64") if ctx.attr.format == "unpacked" else ctx.actions.declare_file("DevAtServGUI-%s-x64.%s" % (ctx.attr.format, extension))
     manifest = ctx.actions.declare_file(ctx.label.name + ".sources.json")
     prefix = ctx.file._package.short_path.removesuffix("package.json")
     ctx.actions.write(manifest, json.encode([
@@ -77,7 +77,7 @@ _electron_package = rule(
     implementation = _electron_package_impl,
     attrs = {
         "srcs": attr.label_list(allow_files = True),
-        "format": attr.string(mandatory = True, values = ["installer", "portable"]),
+        "format": attr.string(mandatory = True, values = ["installer", "portable", "unpacked"]),
         "platform": attr.string(mandatory = True, values = ["win32", "linux"]),
         "node": attr.label(mandatory = True, executable = True, cfg = "exec", allow_single_file = True),
         "_package": attr.label(default = Label("//:package.json"), allow_single_file = True),
@@ -118,3 +118,7 @@ def electron_installer(name, srcs, **kwargs):
 def electron_portable(name, srcs, **kwargs):
     """Build a portable executable on Windows or an AppImage on Linux."""
     _package(name, srcs, "portable", **kwargs)
+
+def electron_unpacked(name, srcs, **kwargs):
+    """Build an Electron app directory including the bundled Python runtime."""
+    _package(name, srcs, "unpacked", **kwargs)

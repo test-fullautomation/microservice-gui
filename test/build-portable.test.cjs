@@ -11,7 +11,7 @@ const { smokePython } = require('../tools/smoke-python.cjs');
 test('packaged Python resolves inside resources, including paths with spaces', context => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gui runtime test '));
   context.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  for (const [platform, relative] of [['win32', 'python.exe'], ['linux', 'bin/python3.12']]) {
+  for (const [platform, relative] of [['win32', 'python.exe'], ['linux', 'bin/python3.13']]) {
     const executable = path.join(root, 'python-runtime', relative);
     fs.mkdirSync(path.dirname(executable), { recursive: true });
     fs.writeFileSync(executable, 'runtime fixture');
@@ -46,6 +46,8 @@ for (const [platform, format, builderPlatform, target, configKey] of [
   ['win32', 'portable', 'WINDOWS', 'portable', 'portable'],
   ['linux', 'installer', 'LINUX', 'deb', 'deb'],
   ['linux', 'portable', 'LINUX', 'AppImage', 'appImage'],
+  ['linux', 'unpacked', 'LINUX', 'dir', null],
+  ['win32', 'unpacked', 'WINDOWS', 'dir', null],
 ]) {
   test(`${platform} ${format} selects an independent packaging target`, () => {
     assert.deepEqual(packagingPlan(platform, format), {

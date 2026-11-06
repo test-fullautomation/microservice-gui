@@ -65,7 +65,7 @@ async function websocketHandshake(port) {
 
 async function smokePython(resources) {
   const executable = path.join(resources, 'python-runtime',
-    process.platform === 'win32' ? 'python.exe' : 'bin/python3.12');
+    process.platform === 'win32' ? 'python.exe' : 'bin/python3.13');
   if (!fs.existsSync(executable)) throw new Error(`Bundled Python missing: ${executable}`);
   const port = await availablePort();
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'gui-python-smoke-'));

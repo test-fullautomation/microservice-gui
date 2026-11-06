@@ -38,7 +38,7 @@ if [[ -f "$APP_DIR/chrome-sandbox" ]]; then
     chmod 4755 "$APP_DIR/chrome-sandbox" || true
 fi
 
-PY_BIN="$APP_RESOURCES/python-runtime/bin/python3.12"
+PY_BIN="$APP_RESOURCES/python-runtime/bin/python3.13"
 if [[ ! -x "$PY_BIN" ]]; then
     echo "ERROR: bundled Python runtime is missing: $PY_BIN" >&2
     exit 1

@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python for metadata validation
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13.11'
 
       - name: Validate application package and runtime versions
         id: check
@@ -130,6 +130,15 @@ jobs:
 
       - name: Build installer and portable with Bazel
         run: bazel build //:installer //:portable --verbose_failures
+
+      - name: Build and smoke-test Linux unpacked runtime
+        if: matrix.name == 'linux'
+        timeout-minutes: 10
+        run: |
+          bazel build //:unpacked --verbose_failures
+          test -x bazel-bin/DevAtServGUI-unpacked-x64/devatservgui
+          test -x bazel-bin/DevAtServGUI-unpacked-x64/resources/python-runtime/bin/python3.13
+          xvfb-run -a bazel-bin/DevAtServGUI-unpacked-x64/devatservgui --runtime-smoke-test --no-sandbox
 
       - name: Smoke-test Windows portable backend
         if: matrix.name == 'windows'

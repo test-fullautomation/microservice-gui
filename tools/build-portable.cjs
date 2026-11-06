@@ -15,8 +15,11 @@ function stageSources(manifest, destination) {
 }
 
 function packagingPlan(platform, format) {
-  if (!['installer', 'portable'].includes(format)) {
+  if (!['installer', 'portable', 'unpacked'].includes(format)) {
     throw new Error(`Unsupported package format: ${format}`);
+  }
+  if (format === 'unpacked' && ['win32', 'linux'].includes(platform)) {
+    return { platform: platform === 'win32' ? 'WINDOWS' : 'LINUX', target: 'dir', configKey: null };
   }
   if (platform === 'win32') {
     const target = format === 'installer' ? 'nsis' : 'portable';
@@ -66,11 +69,16 @@ async function build(manifestPath, npmPackagePath, outputPath, platform, format,
         config: {
           electronVersion: electron.version,
           directories: { output: path.join(staging, 'dist') },
-          [plan.configKey]: { artifactName: path.basename(output) },
+          ...(plan.configKey ? { [plan.configKey]: { artifactName: path.basename(output) } } : {}),
         },
       });
     } finally {
       process.chdir(originalCwd);
+    }
+    if (format === 'unpacked') {
+      const directory = platform === 'win32' ? 'win-unpacked' : 'linux-unpacked';
+      fs.cpSync(path.join(staging, 'dist', directory), output, { recursive: true, dereference: true });
+      return;
     }
     const artifact = artifacts.find(candidate => path.basename(candidate) === path.basename(output));
     if (!artifact) throw new Error(`${format} artifact not produced: ${artifacts.join(', ')}`);

@@ -42,6 +42,7 @@ then run from this directory:
 ```sh
 bazel build //:installer
 bazel build //:portable
+bazel build //:unpacked
 ```
 
 The two targets are independent and can also be built together:
@@ -51,6 +52,17 @@ The two targets are independent and can also be built together:
 |---|---|---|
 | `//:installer` | `DevAtServGUI-installer-x64.exe` (NSIS) | `DevAtServGUI-installer-x64.deb` |
 | `//:portable` | `DevAtServGUI-portable-x64.exe` | `DevAtServGUI-portable-x64.AppImage` |
+| `//:unpacked` | `DevAtServGUI-unpacked-x64/` | `DevAtServGUI-unpacked-x64/` |
+
+The unpacked target produces the complete application directory for embedding
+in a product installer. It includes Electron, `resources/app.asar`, bridge
+sources, and CPython with locked dependencies in `resources/python-runtime`.
+It runs the same HTTP/WebSocket backend smoke as the installer targets. Copy
+the entire directory, preserving permissions; copying only the executable is
+not sufficient. Launch `DevAtServGUI.exe` on Windows or `devatservgui` on Linux.
+No portable wrapper extraction or FUSE is involved. The parent Linux package
+must provide Electron's desktop libraries and configure `chrome-sandbox` as
+root-owned mode `4755` if the host uses the setuid sandbox helper.
 
 Build on the matching OS; cross-compilation is not supported. The Windows
 installer retains its wizard, shortcuts, and custom `installer.nsh` hooks.
@@ -80,7 +92,9 @@ come from this repo's `examples` directory.
 
 ### Bundled Python runtime
 
-The Bazel module downloads CPython 3.12.13 through checksum-pinned uv 0.11.25.
+The Bazel module prepares CPython 3.13.11 using uv 0.11.2. It reuses uv from
+PATH only when its version matches exactly; otherwise it downloads uv with a
+pinned checksum from the official Astral release mirror.
 `pyproject.toml` declares Python dependencies and `uv.lock` pins the resolved
 packages. MicroserviceBase is fetched from
 <https://github.com/test-fullautomation/microservice-base> at commit
@@ -105,7 +119,7 @@ then exits without opening the GUI. Linux CI uses Xvfb with AppImage
 extract-and-run mode; `--no-sandbox` is used only for that CI smoke test.
 
 Runtime/dependency downloads happen only during build, never on first launch.
-Update dependencies with `uv lock --python 3.12` and commit the updated lockfile.
+Update dependencies with `uv lock --python 3.13.11` and commit the updated lockfile.
 The runtime still requires a supported Windows/Linux desktop environment and
 its native Electron libraries. Linux AppImages do not run on every distribution
 or on a minimal server image without desktop libraries. Enterprise execution

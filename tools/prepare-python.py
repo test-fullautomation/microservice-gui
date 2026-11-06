@@ -11,7 +11,10 @@ def main() -> None:
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     for build_marker in (destination / "BUILD", destination / "BUILD.bazel"):
         build_marker.unlink(missing_ok=True)
-    packages = Path("Lib/site-packages") if sys.platform == "win32" else Path("lib/python3.12/site-packages")
+    packages = (
+        Path("Lib/site-packages") if sys.platform == "win32"
+        else Path(f"lib/python{sys.version_info.major}.{sys.version_info.minor}/site-packages")
+    )
     shutil.copytree(
         environment / packages,
         destination / packages,

@@ -1,4 +1,4 @@
-load("//tools:electron.bzl", "electron_installer", "electron_portable")
+load("//tools:electron.bzl", "electron_installer", "electron_portable", "electron_unpacked")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -40,5 +40,10 @@ electron_portable(
 
 electron_installer(
     name = "installer",
+    srcs = [":sources"],
+)
+
+electron_unpacked(
+    name = "unpacked",
     srcs = [":sources"],
 )

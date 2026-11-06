@@ -3,7 +3,7 @@ const path = require('node:path');
 
 function bundledPython(resources, platform = process.platform) {
   const executable = path.join(resources, 'python-runtime',
-    platform === 'win32' ? 'python.exe' : 'bin/python3.12');
+    platform === 'win32' ? 'python.exe' : 'bin/python3.13');
   try {
     fs.accessSync(executable, fs.constants.X_OK);
   } catch (error) {
