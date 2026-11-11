@@ -25,4 +25,5 @@ python_runtime(
     name = "gui_python",
     manifest = "//:pyproject.toml",
     lock = "//:uv.lock",
+    bridge = "//:bridge/pyproject.toml",
 )
