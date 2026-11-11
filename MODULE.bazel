@@ -1,6 +1,6 @@
 module(
     name = "microservice_gui",
-    version = "2.2.0",
+    version = "2.3.0",
     bazel_compatibility = [">=8.0.0"],
 )
 
