@@ -39,6 +39,14 @@ def _python_runtime_impl(ctx):
         fail("Cannot locate managed CPython:\n%s" % result.stderr)
     python = ctx.path(result.stdout.strip())
     installation = python.dirname if windows else python.dirname.dirname
+    bridge = ctx.path(ctx.attr.bridge).dirname
+    ctx.watch_tree(bridge)
+    result = ctx.execute(
+        [str(python), "-I", "-c", "import shutil, sys; shutil.copytree(sys.argv[1], sys.argv[2], ignore=shutil.ignore_patterns('__pycache__', '*.egg-info', '.pytest_cache', 'build', 'dist', '.venv'))", str(bridge), str(ctx.path("bridge"))],
+        timeout = 60,
+    )
+    if result.return_code:
+        fail("Cannot stage local GUI bridge:\n%s\n%s" % (result.stdout, result.stderr))
     result = ctx.execute(
         [str(uv), "sync", "--frozen", "--no-dev", "--no-editable", "--python", str(python)],
         environment = environment,
@@ -69,6 +77,7 @@ python_runtime = repository_rule(
     attrs = {
         "manifest": attr.label(mandatory = True, allow_single_file = True),
         "lock": attr.label(mandatory = True, allow_single_file = True),
+        "bridge": attr.label(mandatory = True, allow_single_file = True),
         "prepare": attr.label(default = Label("//tools:prepare-python.py"), allow_single_file = True),
     },
     environ = ["HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "UV_INDEX_URL", "UV_DEFAULT_INDEX", "SSL_CERT_FILE", "UV_SYSTEM_CERTS"],
