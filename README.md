@@ -84,9 +84,11 @@ The Bazel module downloads CPython 3.12.13 through checksum-pinned uv 0.11.25.
 `pyproject.toml` declares Python dependencies and `uv.lock` pins the resolved
 packages. MicroserviceBase is fetched from
 <https://github.com/test-fullautomation/microservice-base> at commit
-`84336f316568adac53ff38f1acc7f0803319c3c4`, not from PyPI. This revision is
-compatible with the existing 2.2.0 bridge API; newer 3.0.0 revisions moved the
-bridge into a separate package and require an explicit migration.
+`47d91b5077dc1dc10ffcf65a425b2981c8a70e80` (MicroserviceBase 3.0.0), not
+from PyPI. The separate `microservice-gui-bridge` package is built from this
+repo's `bridge/` directory. Bazel tracks and stages that directory before
+installing the locked runtime dependencies. The GUI application version is
+independent of the MicroserviceBase dependency version.
 
 Bazel builds any source dependency on the build host, then copies the managed
 standalone interpreter and installed packages into `resources/python-runtime`.
