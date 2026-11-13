@@ -23,6 +23,33 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 
+// One GUI per user: closing the window only hides it in the tray, so
+// starting the app again (Start menu, desktop icon, taskbar) shows that
+// window instead of opening a second GUI with its own bridge and startup
+// steps. The lock is per userData folder. The packaging smoke test
+// (--runtime-smoke-test) runs on its own: handing over to an open GUI
+// would end it with exit code 0 without testing anything.
+const isSmokeTest = app.commandLine.hasSwitch('runtime-smoke-test');
+const isFirstInstance = isSmokeTest || app.requestSingleInstanceLock();
+if (!isFirstInstance) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    console.log('[main] started again: showing the running GUI');
+    showMainWindow();
+  });
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    if (app.isReady()) createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 // Function to parse command line arguments
 function parseArgs(argName, defaultValue) {
   const arg = process.argv.find(a => a.startsWith(`--${argName}=`));
@@ -98,7 +125,7 @@ function createTray() {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Show Window',
-      click: () => { mainWindow.show(); mainWindow.focus(); }
+      click: () => showMainWindow()
     },
     { type: 'separator' },
     {
@@ -109,14 +136,12 @@ function createTray() {
 
   tray.setContextMenu(contextMenu);
 
-  tray.on('double-click', () => {
-    mainWindow.show();
-    mainWindow.focus();
-  });
+  tray.on('click', () => showMainWindow());
+  tray.on('double-click', () => showMainWindow());
 }
 
 app.whenReady().then(async () => {
-  if (app.commandLine.hasSwitch('runtime-smoke-test')) {
+  if (isSmokeTest) {
     try {
       await require('../tools/smoke-python.cjs').smokePython(process.resourcesPath);
       app.exit(0);
@@ -126,6 +151,8 @@ app.whenReady().then(async () => {
     }
     return;
   }
+  // A second start hands over to the running GUI (second-instance) and ends.
+  if (!isFirstInstance) return;
   // In packaged mode, intercept file:// requests for web/services/*
   // and redirect them to the writable user data directory.
   // Service plugins are extracted to %APPDATA%/DevAtServGUI/web-services/
