@@ -1,6 +1,6 @@
 {
   "name": "devatservgui",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Microservice Manager GUI - Dual hosting (Electron + Python Web)",
   "main": "electron/main.js",
   "scripts": {
