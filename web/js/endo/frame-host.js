@@ -6,7 +6,8 @@
  * access to the shell's DOM, storage or cookies; no forms, popups or top
  * navigation), its own process (Electron: site-per-process +
  * IsolateSandboxedIframes per document, see electron/main.js; in a browser
- * that depends on the browser), and a CSP without network access. It cannot load
+ * that depends on the browser), and a CSP without network access (REST
+ * calls go through ctx.http, made by the bridge). It cannot load
  * files, so the shell sends the code as text (frame-sdk.js builds blob:
  * modules from it).
  *
@@ -280,6 +281,9 @@
         // A failed gRPC call's full status (slot 4); plain JSON across the port.
         if (e && Array.isArray(e.details)) err.details = JSON.parse(JSON.stringify(e.details));
         if (e && e.requestId) err.requestId = String(e.requestId);
+        // A REST answer that was not 2xx: its status and body.
+        if (e && e.status != null) err.status = Number(e.status);
+        if (e && e.body !== undefined) err.body = JSON.parse(JSON.stringify(e.body));
         if (err.code === 'CapabilityDenied') showBanner('bad', label + ': ' + err.message);
         post({ type: 'result', id: msg.id, error: err });
       };
@@ -291,6 +295,8 @@
         switch (msg.method) {
           case 'call': return ctx.call(a[0], a[1], a[2]).then(reply, refuse);
           case 'describe': return ctx.describe(a[0]).then(reply, refuse);
+          // REST: made by the bridge; the frame itself keeps connect-src 'none'.
+          case 'http': return ctx.http(a[0], a[1], a[2]).then(reply, refuse);
           case 'subscribe':
             subs[a[0]] = { names: (a[1] || []).map(String), off: null };
             try { subscribe(a[0]); } catch (e) { delete subs[a[0]]; throw e; }

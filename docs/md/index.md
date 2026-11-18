@@ -393,6 +393,36 @@ chart, the capabilities it uses and the tiles it shows:
   (`WS /api/signals/stream`, `POST /api/signals/set`); `session.*` and
   `config.*` are stubs until the session manager and the configuration
   service exist.
+- **REST services** (FastAPI and the like) are called with `ctx.http`,
+  which needs the `http.call` capability and shell `^2.4`:
+  ```js
+  const r = await ctx.http('GET', '/sessions', { query: { state: 'open' } });
+  // r = { status: 200, headers: {...}, type: 'json', body: [...], requestId }
+  await ctx.http('POST', '/sessions', { body: { name: 'run 1' }, timeout: 5000 });
+  ```
+  - **Who is called:** `"/path"` goes to the service in `binds.consul`;
+    `"<consul>:/path"` to one in `binds.uses` (plugins a service
+    delivers). Any other service is refused with `NotBound` before a call
+    is made.
+  - **Who calls:** the bridge (`POST /api/http/call`). It takes the
+    address from Consul (the service's port, or `Meta.http_port` for a
+    gRPC service with its REST API on another port), so no address or
+    port is written in the GUI. Frames keep `connect-src 'none'`, and the
+    service needs no CORS setting.
+  - **Options:** `query` and `headers` are `{name: value}` (lowercase
+    header names; `host`, `cookie`, `origin`, `x-request-id`, `x-mm-user`
+    and the like are reserved), `body` a JSON value (sent as
+    `application/json`), `timeout` in milliseconds. The path holds no
+    query, no `..` and no host. The bridge adds `x-request-id` and
+    `x-mm-user`, as for gRPC calls.
+  - **Answers:** a 2xx resolves; `type` says whether `body` is parsed
+    JSON, text, or base64 bytes. Any other status rejects with
+    `code: 'HttpError'`, `status` and `body`. A redirect is not followed
+    (the 3xx is the answer). A call that never reached the service
+    rejects with `BridgeError`. Answers over 8 MB are refused, and
+    `Set-Cookie` stays in the bridge.
+  - **Step by step**, with REST and gRPC in one component:
+    [Calling REST and gRPC services](rest_and_grpc_calls.md).
 - **Lint** before shipping, from the Manager GUI folder:
   `node tools/endo-lint.js web/services/<gui>/component.json`. It exits
   non-zero on errors. A manifest with errors is not mounted; the GUI shows
@@ -572,7 +602,8 @@ their Consul registration and serve the `ServiceGui` contract themselves.
   `plugin.json` (the first is the default), and `ctx.service` names it.
 - It may call **other services it names** in `binds.uses` (Consul names),
   as `ctx.call('<consul>:<ProtoService>/<Method>', args)`, on the same
-  Consul. Any other service is refused in the GUI (`NotBound`) before a
+  Consul, or over REST as `ctx.http('GET', '<consul>:/path')` with
+  `http.call`. Any other service is refused in the GUI (`NotBound`) before a
   call is made. The Plugins dialog lists them under *Also calls*.
 - `ctx.call(method, args, { timeout, metadata })` takes a timeout in
   milliseconds and request metadata (lowercase keys; no `grpc-`, `-bin`,

@@ -475,6 +475,57 @@ const rules = (issues, sev) => issues.filter((i) => !sev || i.severity === sev).
     e = await refusedWith(ctx.call('Open', {}));
     check('slot 4: a bridge that is down is a BridgeError too', e && e.code === 'BridgeError' && /Bridge not running/.test(e.message), e && e.code);
 
+    // ---------- ctx.http: REST through the bridge ----------
+    const hsent = [];
+    let hanswer = { ok: true, status: 200, headers: { 'content-type': 'application/json' }, type: 'json', body: { n: 1 }, request_id: 'h1' };
+    MM.grpcClient.httpCall = (o) => { hsent.push(o); return typeof hanswer === 'function' ? hanswer(o) : Promise.resolve(hanswer); };
+    const hlast = () => hsent[hsent.length - 1];
+    e = await refusedWith(ctx.http('GET', '/sessions'));
+    check('http: without http.call it is refused before any call', e && e.code === 'CapabilityDenied' && hsent.length === 0, e && e.message);
+    const hctx = MM.endo.makeCtx({ component: 'plugin.sessions', requires: { capabilities: ['http.call'] },
+                                   binds: { consul: 'session-manager', uses: ['catalog'] } },
+                                 { consulName: 'session-manager', consulUrl: 'http://consul:8500' });
+    let r = await hctx.http('get', '/sessions', { query: { state: 'open', n: 2 }, headers: { 'x-tenant': 'lab-3' }, timeout: 1500 });
+    check('http: "/path" goes to the own service, with query, headers and timeout (s)',
+          hlast().consulName === 'session-manager' && hlast().method === 'GET' && hlast().path === '/sessions' &&
+          hlast().consulUrl === 'http://consul:8500' && JSON.stringify(hlast().query) === '{"state":"open","n":"2"}' &&
+          hlast().headers['x-tenant'] === 'lab-3' && hlast().timeout === 1.5 && !('body' in hlast()), hlast());
+    check('http: a 2xx resolves with status, headers, type, body and requestId',
+          r.status === 200 && r.type === 'json' && r.body.n === 1 && r.requestId === 'h1' && r.headers['content-type'] === 'application/json', r);
+    await hctx.http('POST', '/sessions', { body: { name: 'run 1' } });
+    check('http: a JSON body reaches the bridge', JSON.stringify(hlast().body) === '{"name":"run 1"}', hlast());
+    await hctx.http('GET', 'catalog:/items');
+    check('http: "<consul>:/path" goes to a service in binds.uses', hlast().consulName === 'catalog' && hlast().path === '/items', hlast());
+    await hctx.http('GET', 'session-manager:/x');
+    check('http: the own Consul name as prefix is the own service', hlast().consulName === 'session-manager' && hlast().path === '/x', hlast());
+    const hn = hsent.length;
+    e = await refusedWith(hctx.http('GET', 'configuration-hub:/x'));
+    check('http: a service not in binds.uses is refused before any call', e && e.code === 'NotBound' && hsent.length === hn, e && e.message);
+    for (const bad of ['sessions', 'http://evil.example/x', 'catalog:items', '']) {
+      e = await refusedWith(hctx.http('GET', bad));
+      check('http: "' + bad + '" is not a REST path', e && e.code === 'NotBound' && hsent.length === hn, e && e.message);
+    }
+    for (const [opts, what] of [[{ timeout: 0 }, 'timeout'], [{ query: ['a'] }, 'query'], [{ headers: 'x' }, 'headers']]) {
+      e = await refusedWith(hctx.http('GET', '/x', opts));
+      check('http: a bad ' + what + ' is BadOptions', e && e.code === 'BadOptions' && hsent.length === hn, e && e.message);
+    }
+    const cyc = {}; cyc.self = cyc;
+    e = await refusedWith(hctx.http('POST', '/x', { body: cyc }));
+    check('http: a body that is not plain JSON is BadOptions', e && e.code === 'BadOptions', e && e.message);
+    const noService = MM.endo.makeCtx({ component: 'x.y', requires: { capabilities: ['http.call'] } }, {});
+    e = await refusedWith(noService.http('GET', '/x'));
+    check('http: without binds.consul there is no service to call', e && e.code === 'NotBound', e && e.message);
+    hanswer = { ok: false, code: 'HttpError', status: 404, type: 'json', body: { detail: 'no such session' }, error: 'GET /s/9: HTTP 404', request_id: 'h4' };
+    e = await refusedWith(hctx.http('GET', '/s/9'));
+    check('http: a non-2xx rejects with HttpError, status, body and requestId',
+          e && e.code === 'HttpError' && e.status === 404 && e.body.detail === 'no such session' && e.requestId === 'h4', e && { code: e.code, status: e.status });
+    hanswer = { ok: false, code: '', error: "Service 'session-manager' not found in Consul", request_id: 'h5' };
+    e = await refusedWith(hctx.http('GET', '/x'));
+    check('http: a call that never reached the service is a BridgeError', e && e.code === 'BridgeError' && e.status === undefined, e && e.code);
+    hanswer = () => Promise.reject(new Error('Bridge not running'));
+    e = await refusedWith(hctx.http('GET', '/x'));
+    check('http: a bridge that is down is a BridgeError too', e && e.code === 'BridgeError' && /Bridge not running/.test(e.message), e && e.code);
+
     // The frame boundary keeps the full status (frame-host refuse -> frame-sdk).
     const hostSrc = fs.readFileSync(path.join(GUI, 'web', 'js', 'endo', 'frame-host.js'), 'utf-8');
     const sdkSrc = fs.readFileSync(path.join(GUI, 'web', 'js', 'endo', 'frame-sdk.js'), 'utf-8');
@@ -482,6 +533,11 @@ const rules = (issues, sev) => issues.filter((i) => !sev || i.severity === sev).
           /err\.details = /.test(hostSrc) && /err\.requestId = /.test(hostSrc) && /ctx\.call\(a\[0\], a\[1\], a\[2\]\)/.test(hostSrc));
     check('slot 4: the frame SDK puts them back on the Error',
           /e\.details = msg\.error\.details/.test(sdkSrc) && /e\.requestId = msg\.error\.requestId/.test(sdkSrc));
+    check('http: the frame host serves ctx.http and passes status and body across the port',
+          /case 'http': return ctx\.http\(a\[0\], a\[1\], a\[2\]\)/.test(hostSrc) && /err\.status = /.test(hostSrc) && /err\.body = /.test(hostSrc));
+    check('http: the frame SDK offers ctx.http and puts status and body back on the Error',
+          /http: function \(method, path, opts\)/.test(sdkSrc) && /e\.status = msg\.error\.status/.test(sdkSrc) && /e\.body = msg\.error\.body/.test(sdkSrc));
+    check('http: frames still have no network of their own', /connect-src 'none'/.test(hostSrc) && !/connect-src 'self'/.test(hostSrc));
   }
 
   console.log('\n' + passes + ' passed, ' + failures + ' failed');

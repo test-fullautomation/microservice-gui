@@ -26,13 +26,28 @@
   'use strict';
 
   /** Shell API version. Minor bumps for additive contract changes. */
-  var SHELL_VERSION = '2.3.0';
+  var SHELL_VERSION = '2.4.0';
 
   var LAYERS = ['operator', 'session', 'config', 'execution', 'runner', 'signals', 'bits'];
 
   var CAPABILITIES = ['grpc.call', 'signals.subscribe', 'signals.set', 'session.read',
                       'session.label', 'config.read', 'config.write', 'files.project',
-                      'process.spawn'];
+                      'process.spawn', 'http.call'];
+
+  /** Capabilities newer than shell 2.3: the range that needs them, and the last shell without. */
+  var CAPABILITY_SINCE = { 'http.call': { range: '^2.4', before: '2.3.99' } };
+
+  /** R9: a manifest that asks for a newer capability must also need that shell. */
+  function sinceIssues(caps, range, add) {
+    if (typeof range !== 'string') return;
+    caps.forEach(function (c, i) {
+      var s = CAPABILITY_SINCE[c];
+      if (s && satisfies(range, s.before)) {
+        add('R9', 'warn', 'requires.capabilities[' + i + ']',
+            c + ' needs shell ' + s.range + ': require "' + s.range + '" so an older GUI refuses the manifest instead of failing on the call');
+      }
+    });
+  }
 
   /** Tile sizes on the 4-column stage: [columns, rows]. */
   var SIZES = { '1x1': [1, 1], '2x1': [2, 1], '2x2': [2, 2], '4x1': [4, 1] };
@@ -342,6 +357,10 @@
       if (CAPABILITIES.indexOf(c) < 0) add('R1', 'error', 'requires.capabilities[' + i + ']', 'unknown capability "' + c + '"');
       else if (c === 'process.spawn') add('R1', 'error', 'requires.capabilities[' + i + ']', 'process.spawn is for window plugins, not components');
     });
+    sinceIssues(caps, req.shell, add);
+    if (caps.indexOf('http.call') >= 0 && !(manifest.binds && manifest.binds.consul)) {
+      add('R1', 'warn', 'requires.capabilities', 'http.call without binds.consul: ctx.http has no service to call');
+    }
     var u = uses(manifest);
     if (u.rpc.length && caps.indexOf('grpc.call') < 0) {
       add('R1', 'error', u.rpc[0], 'calls RPCs but grpc.call is not in requires.capabilities');
@@ -483,6 +502,7 @@
         add('R1', 'error', 'requires.capabilities[' + i + ']', 'process.spawn needs "isolation": "window"');
       }
     });
+    sinceIssues(req.capabilities || [], req.shell, add);
     if (manifest.isolation === 'window' && !manifest.main) add('S', 'error', 'main', 'window plugins name their main-process module');
 
     // P2: namespaced ids; ribbon commands name declared commands.
@@ -589,8 +609,8 @@
           add('P', 'warn', at, '"' + name + '" is listed twice');
         }
       });
-      if (uses.length && (req.capabilities || []).indexOf('grpc.call') < 0) {
-        add('P', 'warn', 'binds.uses', 'binds.uses without grpc.call: it can call none of them');
+      if (uses.length && (req.capabilities || []).indexOf('grpc.call') < 0 && (req.capabilities || []).indexOf('http.call') < 0) {
+        add('P', 'warn', 'binds.uses', 'binds.uses without grpc.call or http.call: it can call none of them');
       }
     } else if (bound.length || (manifest.binds && manifest.binds.uses)) {
       add('P', 'warn', 'binds', 'binds is used only by a plugin a service delivers; this one has no service to call');

@@ -143,6 +143,52 @@
       return out;
     }
 
+    /** "/path" (the own service) or "<consul>:/path" (one in binds.uses). */
+    function httpTarget(path) {
+      var s = String(path || '');
+      var consul = consulName, p = s;
+      if (s.charAt(0) !== '/') {
+        var c = s.indexOf(':');
+        if (c <= 0 || s.charAt(c + 1) !== '/') throw notBound('a REST path is "/<path>" or "<consul>:/<path>", not "' + s.slice(0, 200) + '"');
+        consul = s.slice(0, c);
+        p = s.slice(c + 1);
+        if (consul !== consulName && uses.indexOf(consul) < 0) throw notBound(consul + ' is not in binds.uses');
+      }
+      if (!consul) throw notBound('no service: binds.consul names none');
+      return { consul: consul, path: p };
+    }
+
+    /** { query, body, headers, timeout: ms } of a REST call, in the bridge's words. */
+    function httpOptions(opts) {
+      opts = opts || {};
+      var bad = function (text) { return Object.assign(new Error(text), { code: 'BadOptions' }); };
+      var out = { query: {}, headers: {} };
+      var t = Number(opts.timeout);
+      if (opts.timeout != null && !(t > 0)) throw bad('timeout must be a positive number of milliseconds');
+      if (t > 0) out.timeout = t / 1000;
+      ['query', 'headers'].forEach(function (k) {
+        var v = opts[k];
+        if (v == null) return;
+        if (typeof v !== 'object' || Array.isArray(v)) throw bad(k + ' must be an object of name: value');
+        Object.keys(v).forEach(function (n) { if (v[n] != null) out[k][n] = String(v[n]); });
+      });
+      if (opts.body !== undefined) {
+        try { out.body = JSON.parse(JSON.stringify(opts.body)); } catch (e) { throw bad('body must be plain JSON: ' + e.message); }
+      }
+      return out;
+    }
+
+    /** A failed REST call: HttpError with status and body, else BridgeError. */
+    function httpError(what, d) {
+      d = d || {};
+      var e = new Error(d.error || (what + ' failed'));
+      e.code = d.code || 'BridgeError';
+      if (d.status != null) e.status = d.status;
+      if (d.body !== undefined) e.body = d.body;
+      e.requestId = d.request_id || '';
+      return e;
+    }
+
     return {
       component: manifest.component,
       consulName: consulName,
@@ -184,6 +230,34 @@
           return d;
         }, function (err) {
           throw callError(method, { error: err && err.message });
+        });
+      },
+
+      /**
+       * REST call to a service that serves HTTP (FastAPI and the like),
+       * made by the bridge, which takes the address from Consul: "/path"
+       * goes to the own service (binds.consul), "<consul>:/path" to a
+       * service in binds.uses. Needs http.call.
+       * opts: { query: {name: value}, body: <JSON>, headers: {name: value},
+       * timeout: ms }. Resolves { status, headers, type, body, requestId }
+       * for a 2xx answer (type "json", "text" or "base64"). Any other
+       * status rejects with code HttpError, status and body; a call that
+       * never reached the service with BridgeError.
+       */
+      http: function (method, path, opts) {
+        if (!caps['http.call']) return denied('http.call');
+        var t, o;
+        try { t = httpTarget(path); o = httpOptions(opts); } catch (e) { return Promise.reject(e); }
+        var verb = String(method || 'GET').toUpperCase();
+        var what = verb + ' ' + (t.consul === consulName ? '' : t.consul + ':') + t.path;
+        var req = { consulName: t.consul, consulUrl: env.consulUrl, method: verb, path: t.path,
+                    query: o.query, headers: o.headers, timeout: o.timeout };
+        if ('body' in o) req.body = o.body;
+        return MM.grpcClient.httpCall(req).then(function (d) {
+          if (!d || !d.ok) throw httpError(what, d);
+          return { status: d.status, headers: d.headers || {}, type: d.type, body: d.body, requestId: d.request_id || '' };
+        }, function (err) {
+          throw httpError(what, { error: err && err.message });
         });
       },
 
