@@ -33,8 +33,9 @@
   MM.endo = MM.endo || {};
 
   var SDK_URL = 'js/endo/frame-sdk.js';
-  var CSP = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; " +
-            "img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; " +
+  var CSP = "default-src 'self'; " + "connect-src 'self' http://127.0.0.1:8090;" +
+            "script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; " +
+            "img-src data: blob:; font-src data:; media-src data: blob:; " +
             "frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'";
   var BASE_CSS = 'html,body{margin:0;padding:0;background:transparent;color:var(--text,#14201A);' +
     'font-family:var(--font-sans,system-ui),system-ui,"Segoe UI",sans-serif;font-size:14px}' +
