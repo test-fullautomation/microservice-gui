@@ -117,6 +117,38 @@
         metadata:     opts.metadata || {},
         request_id:   opts.requestId || ''
       });
+    },
+
+    /**
+     * Call the REST API of a Consul-registered service, made by the bridge
+     * (components' ctx.http). The bridge takes the address from Consul.
+     *
+     * @param {object} opts
+     * @param {string} opts.consulName  Consul service name.
+     * @param {string} opts.method      GET, POST, PUT, PATCH or DELETE.
+     * @param {string} opts.path        "/..." without a query.
+     * @param {object} [opts.query]     {name: value}, URL-encoded by the bridge.
+     * @param {*}      [opts.body]      JSON value sent as application/json.
+     * @param {object} [opts.headers]   {name: value}, lowercase names.
+     * @param {string} [opts.consulUrl] Consul cluster URL (for multi-Consul).
+     * @param {number} [opts.timeout]   Seconds (default: the bridge's, 30).
+     * @param {string} [opts.requestId] Id of the call (the bridge makes one when empty).
+     * @returns {Promise<object>} {ok, status, headers, type, body, request_id}
+     *     or {ok: false, code: 'HttpError' | '', error, ...}.
+     */
+    httpCall: function (opts) {
+      var body = {
+        consul_name: opts.consulName,
+        method:      opts.method || 'GET',
+        path:        opts.path || '/',
+        query:       opts.query || {},
+        headers:     opts.headers || {},
+        consul:      opts.consulUrl || '',
+        timeout:     opts.timeout || 0,
+        request_id:  opts.requestId || ''
+      };
+      if (opts.body !== undefined) body.body = opts.body;
+      return _fetchJson('POST', '/api/http/call', body);
     }
   };
 

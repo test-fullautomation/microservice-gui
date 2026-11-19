@@ -51,7 +51,7 @@ const GOOD = {
 
 // ---------- baseline ----------
 check('good manifest: no issues at all', lint(GOOD).length === 0, lint(GOOD));
-check('SHELL_VERSION is 2.3.x', /^2\.3\./.test(C.SHELL_VERSION));
+check('SHELL_VERSION is 2.4.x (http.call)', /^2\.4\./.test(C.SHELL_VERSION));
 
 // ---------- structure ----------
 {
@@ -90,6 +90,17 @@ check('SHELL_VERSION is 2.3.x', /^2\.3\./.test(C.SHELL_VERSION));
   const m6 = clone(GOOD); m6.requires.capabilities = ['grpc.call'];
   m6.tiles = [{ id: 's', size: '2x1', kind: 'signal-strip' }];
   check('R1: a plugin kind\'s needs must be declared', lint(m6, { kinds }).some((i) => i.rule === 'R1' && /signal-strip/.test(i.message)));
+  // http.call (shell 2.4): REST through the bridge to binds.consul
+  const h = { component: 'session.list', version: '0.1.0', layer: 'session', title: 'Sessions',
+              requires: { shell: '^2.4', capabilities: ['http.call'] }, binds: { consul: 'session-manager' },
+              tiles: [{ id: 'l', size: '4x1', kind: 'text', text: 'sessions' }], renderer: 'schema' };
+  check('R1: http.call is a known capability, and needs neither grpc.call nor binds.grpc', lint(h).length === 0, lint(h).map(C.formatIssue));
+  const h2 = clone(h); h2.requires.shell = '^2.3';
+  check('R9: http.call with a shell range that takes 2.3 warns',
+        lint(h2).some((i) => i.rule === 'R9' && i.severity === 'warn' && /http\.call needs shell \^2\.4/.test(i.message)), lint(h2).map(C.formatIssue));
+  const h3 = clone(h); delete h3.binds;
+  check('R1: http.call without binds.consul warns',
+        lint(h3).some((i) => i.rule === 'R1' && i.severity === 'warn' && /binds\.consul/.test(i.message)), lint(h3).map(C.formatIssue));
 }
 
 // ---------- R2 ----------

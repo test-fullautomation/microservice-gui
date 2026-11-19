@@ -134,6 +134,10 @@
       // an Error carrying code, details and requestId.
       call: function (method, args, opts) { return request('call', opts ? [method, args || {}, opts] : [method, args || {}]); },
       describe: function (method) { return request('describe', [method]); },
+      // REST through the bridge: path "/..." or "<consul>:/...";
+      // opts: { query, body, headers, timeout: ms }. A non-2xx answer
+      // rejects with code HttpError, status and body.
+      http: function (method, path, opts) { return request('http', opts ? [method, path, opts] : [method, path]); },
       signals: {
         subscribe: function (names, cb) {
           var id = 's' + (++seq);
@@ -196,6 +200,8 @@
             e.code = msg.error.code;
             if (msg.error.details) e.details = msg.error.details;
             if (msg.error.requestId) e.requestId = msg.error.requestId;
+            if (msg.error.status != null) e.status = msg.error.status;
+            if ('body' in msg.error) e.body = msg.error.body;
             p.reject(e);
           } else {
             p.resolve(msg.value);

@@ -490,6 +490,164 @@ what. Raises ``ValueError`` naming the bad key.
    return out, rid
 
 
+# ---- REST calls made for components (ctx.http) ----
+#
+# The bridge calls the HTTP API of a Consul-registered service for the GUI,
+# the way /api/grpc/call does for gRPC: the frame of a component keeps
+# ``connect-src 'none'``, and the address comes from Consul, so a call can
+# reach only a registered service, never an address the caller names.
+
+HTTP_METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
+#: Largest answer body passed to the GUI (bytes).
+MAX_HTTP_BODY = 8 * 1024 * 1024
+MAX_HTTP_QUERY = 64
+MAX_HTTP_HEADERS = 16
+DEFAULT_HTTP_TIMEOUT = 30.0
+_SERVICE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+# A path only: no scheme, host, query, fragment, spaces or backslashes.
+_HTTP_PATH = re.compile(r"^/[A-Za-z0-9\-._~%!$&'()*+,;=:@/]{0,2047}$")
+_HTTP_HEADER = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
+#: Headers the bridge sets, or that change how the request travels.
+RESERVED_HTTP_HEADERS = ("host", "content-length", "transfer-encoding", "connection", "keep-alive",
+                         "upgrade", "te", "trailer", "expect", "cookie", "origin", "referer",
+                         "proxy-authorization") + BRIDGE_METADATA
+#: Answer headers not passed to the GUI.
+_HIDDEN_HTTP_HEADERS = ("set-cookie", "set-cookie2")
+
+
+def is_service_name(name):
+   """True for a Consul service name (no address, port, path or query)."""
+   return isinstance(name, str) and bool(_SERVICE_NAME.match(name))
+
+
+def http_call_request(method, path, query=None, headers=None, request_id=""):
+   """
+Check a REST call made for the GUI and build what is sent.
+
+``method`` is one of :data:`HTTP_METHODS`; ``path`` starts with ``/`` and
+holds no query, fragment, ``.``/``..`` segment, space or backslash;
+``query`` is ``{name: value}`` (sent URL-encoded); ``headers`` are
+lowercase names, printable values, none of :data:`RESERVED_HTTP_HEADERS`.
+The bridge adds ``x-request-id`` and ``x-mm-user`` as for gRPC calls.
+Raises ``ValueError`` naming what is wrong.
+
+**Returns:** ``(method, path_and_query, headers dict, request_id)``
+   """
+   from urllib.parse import unquote, urlencode
+
+   method = str(method or "GET").upper()
+   if method not in HTTP_METHODS:
+      raise ValueError("method %r: use one of %s" % (method, ", ".join(HTTP_METHODS)))
+   path = str(path or "/")
+   if not _HTTP_PATH.match(path) or path.startswith("//"):
+      raise ValueError("path %r: start with / and give the query in query, not in the path "
+                       "(no scheme, host, '?', '#', spaces or backslashes)" % path[:200])
+   decoded = unquote(path)
+   # A service may decode the path before it routes it.
+   if any(seg in (".", "..") for seg in decoded.split("/")) or "\\" in decoded:
+      raise ValueError("path %r: no '.' or '..' segments, encoded or not, and no encoded '\\'" % path[:200])
+   query = query or {}
+   if not isinstance(query, dict):
+      raise ValueError("query must be an object of name: value")
+   if len(query) > MAX_HTTP_QUERY:
+      raise ValueError("at most %d query parameters" % MAX_HTTP_QUERY)
+   if query:
+      path += "?" + urlencode([(str(k), "" if v is None else str(v)) for k, v in query.items()])
+   headers = headers or {}
+   if not isinstance(headers, dict):
+      raise ValueError("headers must be an object of name: value")
+   if len(headers) > MAX_HTTP_HEADERS:
+      raise ValueError("at most %d headers" % MAX_HTTP_HEADERS)
+   out = {}
+   for key, value in headers.items():
+      key = str(key)
+      if not _HTTP_HEADER.match(key):
+         raise ValueError("header %r: use lowercase letters, digits or '-'" % key)
+      if key in RESERVED_HTTP_HEADERS or key.startswith("proxy-") or key.startswith("sec-"):
+         raise ValueError("header %r is reserved" % key)
+      value = str(value)
+      if len(value) > 1024 or any(not (32 <= ord(c) < 127) for c in value):
+         raise ValueError("header %r: the value must be printable ASCII of at most 1024 characters" % key)
+      out[key] = value
+   rid = request_id if request_id and _REQUEST_ID.match(request_id) else uuid.uuid4().hex
+   out["x-request-id"] = rid
+   user = _local_user()
+   if user and len(user) <= 1024 and all(32 <= ord(c) < 127 for c in user):
+      out["x-mm-user"] = user
+   return method, path, out, rid
+
+
+def http_service_port(port, meta):
+   """The HTTP port of a Consul service: ``Meta.http_port`` when it names
+   one (a gRPC service with a REST API on another port), else its port."""
+   value = str((meta or {}).get("http_port") or "").strip()
+   if value.isdigit() and 0 < int(value) < 65536:
+      return int(value)
+   return port
+
+
+def send_http(host, port, method, path_and_query, headers, body=None, timeout=None):
+   """
+Send one REST request to ``host:port`` and read the answer.
+
+Redirects are not followed (a 3xx is the answer, with its ``location``
+header): a redirect could lead to an address that is not the service.
+A loopback address is reached without the proxy. ``body`` (any
+JSON-encodable value) is sent as ``application/json``. Raises
+``urllib.error.URLError`` when the service cannot be reached and
+``ValueError`` for an answer larger than :data:`MAX_HTTP_BODY`.
+
+**Returns:** ``{"status", "headers", "type": "json"|"text"|"base64", "body"}``
+   """
+   import urllib.error
+   import urllib.request
+   from ..nomad_hub.nomad_client import is_loopback_url
+
+   class _NoRedirect(urllib.request.HTTPRedirectHandler):
+      def redirect_request(self, *args, **kwargs):
+         return None
+
+   shown = "[%s]" % host if ":" in host and not host.startswith("[") else host
+   url = "http://%s:%d%s" % (shown, int(port), path_and_query)
+   headers = dict(headers or {})
+   data = None
+   if body is not None:
+      data = json.dumps(body).encode("utf-8")
+      headers.setdefault("content-type", "application/json")
+   headers.setdefault("accept", "application/json, text/plain;q=0.9, */*;q=0.5")
+   request = urllib.request.Request(url, data=data, method=method, headers=headers)
+   handlers = [_NoRedirect()]
+   if is_loopback_url(url):
+      handlers.append(urllib.request.ProxyHandler({}))
+   opener = urllib.request.build_opener(*handlers)
+   try:
+      resp = opener.open(request, timeout=timeout or DEFAULT_HTTP_TIMEOUT)
+   except urllib.error.HTTPError as e:   # 4xx, 5xx and the 3xx not followed
+      resp = e
+   with resp:
+      status = resp.getcode()
+      raw = resp.read(MAX_HTTP_BODY + 1)
+      answer_headers = {k.lower(): v for k, v in resp.headers.items()
+                        if k.lower() not in _HIDDEN_HTTP_HEADERS}
+   if len(raw) > MAX_HTTP_BODY:
+      raise ValueError("the answer is larger than %d MB" % (MAX_HTTP_BODY // (1024 * 1024)))
+   ctype = answer_headers.get("content-type", "").lower()
+   out = {"status": status, "headers": answer_headers}
+   if not raw:
+      return dict(out, type="text", body="")
+   if "json" in ctype:
+      try:
+         return dict(out, type="json", body=json.loads(raw.decode("utf-8")))
+      except ValueError:
+         pass   # says JSON but is not: pass it on as text
+   if ctype.startswith("text/") or "json" in ctype or "xml" in ctype or not ctype:
+      try:
+         return dict(out, type="text", body=raw.decode("utf-8"))
+      except UnicodeDecodeError:
+         pass
+   return dict(out, type="base64", body=base64.b64encode(raw).decode("ascii"))
+
+
 class FastAPIBridge(UIBridgePort):
    """
 FastAPI implementation of UIBridgePort.
@@ -2635,6 +2793,63 @@ the bridge is what serves ``web/``.
             return {**base, "ok": False, "target": target,
                     "discovery_source": source, "code": "", "details": [],
                     "error": "%s: %s" % (type(e).__name__, e)}
+
+      class HttpCallBody(BaseModel):
+         consul_name: str
+         method: str = "GET"
+         path: str = "/"
+         query: Dict[str, Any] = {}
+         body: Any = None       # JSON value sent as application/json; None: no body
+         headers: Dict[str, str] = {}
+         consul: str = ""
+         timeout: float = 0     # seconds; 0 = DEFAULT_HTTP_TIMEOUT
+         request_id: str = ""   # the GUI's id of this call; a new one when empty
+
+      @app.post("/api/http/call")
+      def http_call(body: HttpCallBody):
+         """Call the REST API of a Consul-registered service (ctx.http).
+
+         The address is the service's in Consul (``Meta.http_port`` when it
+         names one), so only a registered service can be reached. A 2xx
+         answers ``{"ok": true, "status", "headers", "type", "body"}``;
+         any other status ``{"ok": false, "code": "HttpError", ...}`` with
+         the same fields; a call that never reached the service
+         ``{"ok": false, "code": "", "error"}``. Every answer carries the
+         ``request_id`` sent to the service as ``x-request-id``.
+         """
+         import urllib.error
+
+         try:
+            if not is_service_name(body.consul_name):
+               raise ValueError("%r is not a Consul service name" % body.consul_name[:200])
+            method, path, headers, request_id = http_call_request(
+                body.method, body.path, body.query, body.headers, body.request_id)
+         except ValueError as e:
+            return {"ok": False, "code": "", "error": str(e),
+                    "request_id": body.request_id if _REQUEST_ID.match(body.request_id or "") else ""}
+         base = {"request_id": request_id}
+         timeout = min(max(body.timeout, 0.0), MAX_CALL_TIMEOUT) or None
+
+         target_info = _find_service_target(body.consul_name, consul=body.consul)
+         if target_info is None:
+            return {**base, "ok": False, "code": "",
+                    "error": "Service '%s' not found in Consul" % body.consul_name}
+         host, port, meta = target_info
+         port = http_service_port(port, meta)
+         target = "%s:%d" % (host, port)
+         try:
+            answer = send_http(host, port, method, path, headers, body.body, timeout)
+         except urllib.error.URLError as e:
+            return {**base, "ok": False, "code": "", "target": target,
+                    "error": "%s %s on %s: %s" % (method, path, target, getattr(e, "reason", e))}
+         except Exception as e:   # noqa: BLE001 -- too big, a timeout while reading, ...
+            return {**base, "ok": False, "code": "", "target": target,
+                    "error": "%s %s on %s: %s: %s" % (method, path, target, type(e).__name__, e)}
+         ok = 200 <= answer["status"] < 300
+         out = {**base, "ok": ok, "target": target, **answer}
+         if not ok:
+            out.update(code="HttpError", error="%s %s: HTTP %d" % (method, path, answer["status"]))
+         return out
 
       # ---- Service Scaffolding endpoint ----
 
