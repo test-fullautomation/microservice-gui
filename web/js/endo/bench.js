@@ -346,27 +346,48 @@
     });
   }
 
-  function compHeadHtml() {
-    var comp = state.comp || {};
+  function compIssueLists() {
     var errs = state.compIssues.filter(function (i) { return i.severity === 'error'; });
     var warns = state.compIssues.concat(state.orderIssues || []).concat(
       state.modules.reduce(function (a, m) { return a.concat(m.warnings || []); }, []))
       .filter(function (i) { return i.severity === 'warn'; });
+    return { errs: errs, warns: warns };
+  }
+
+  /** The bench's title, where it is stored and whether it passes: in the navbar. */
+  function compTitleHtml() {
+    var comp = state.comp || {};
+    var l = compIssueLists();
     var sel = state.selection;
     var where = state.stored
       ? esc(sel.bench) + ' · ' + esc(ROLE_LABEL[sel.role] || sel.role)
       : 'not saved';
-    var badge = errs.length
-      ? '<span class="endo-lint bad">refused · ' + errs.length + ' error' + (errs.length > 1 ? 's' : '') + '</span>'
-      : warns.length
-        ? '<span class="endo-lint warn">' + warns.length + ' warning' + (warns.length > 1 ? 's' : '') + '</span>'
+    var badge = l.errs.length
+      ? '<span class="endo-lint bad">refused · ' + l.errs.length + ' error' + (l.errs.length > 1 ? 's' : '') + '</span>'
+      : l.warns.length
+        ? '<span class="endo-lint warn">' + l.warns.length + ' warning' + (l.warns.length > 1 ? 's' : '') + '</span>'
         : '<span class="endo-lint ok">composition passes</span>';
     return '<div class="bench-head">' +
-      '<h5>' + esc(comp.title || comp.composition || 'Bench') + '</h5>' +
+      '<span class="bench-title">' + esc(comp.title || comp.composition || 'Bench') + '</span>' +
       '<span class="endo-id">' + esc(comp.composition || '') + ' · ' + where + '</span>' +
       badge +
-      '</div>' +
-      (state.note ? '<div class="bench-note">' + esc(state.note) + '</div>' : '') +
+      '</div>';
+  }
+
+  /** Show the bench's title in the navbar while the bench is the view. */
+  function drawContext() {
+    var bar = document.getElementById('navbarContext');
+    if (!bar) return;
+    bar.hidden = !state.active || !state.comp;
+    bar.innerHTML = bar.hidden ? '' : compTitleHtml();
+  }
+
+  /** Above the stage: only what needs reading (note, warnings, refusal). */
+  function compHeadHtml() {
+    var l = compIssueLists();
+    var errs = l.errs;
+    var warns = l.warns;
+    return (state.note ? '<div class="bench-note">' + esc(state.note) + '</div>' : '') +
       (warns.length && !errs.length ? '<details class="endo-warns"><summary>Warnings</summary>' + MM.endo.issuesListHtml(warns) + '</details>' : '') +
       (errs.length ? '<div class="endo-refused" role="alert"><strong>The shell refused this composition.</strong> ' +
         'Fix it in <em>Edit composition</em>:' + MM.endo.issuesListHtml(errs) + '</div>' : '');
@@ -441,6 +462,7 @@
     if (shaped) instances.push(MM.endo.shapeStage(stage));
 
     drawStatus();
+    drawContext();
     drawNav();
     drawDrawer();
     addRibbonGroups();
@@ -1364,6 +1386,7 @@
     if (on === state.active) return;
     state.active = on;
     syncRibbonGroups();
+    drawContext();
     if (on) {
       if (state.dirty || signatureOf(services()) !== state.signature) { reload(); return; }
       if (state.group) state.group.resume();

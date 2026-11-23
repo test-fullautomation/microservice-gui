@@ -66,6 +66,38 @@ html, body {
   gap: 0.75rem;
 }
 
+/* What the current view shows (bench.js drawContext), after the ribbon tabs. */
+.app-navbar .navbar-context {
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+.navbar-context .bench-head { flex-wrap: nowrap; gap: 0.6rem; min-width: 0; }
+.navbar-context .bench-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.navbar-context .endo-id {
+  color: var(--sidebar-muted, #93A29A);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.navbar-context .endo-lint { margin-left: 0; flex-shrink: 0; }
+.navbar-context .endo-lint.ok { color: var(--accent-bright, #45C3A8); background: rgba(69, 195, 168, 0.14); }
+.navbar-context .endo-lint.warn { color: #F0B85A; background: rgba(240, 184, 90, 0.14); }
+.navbar-context .endo-lint.bad { color: #FF8A80; background: rgba(255, 138, 128, 0.16); }
+@media (max-width: 1100px) {
+  .navbar-context .endo-id { display: none; }
+}
+
 /* Desktop app without a native title bar (set by electron/preload.js): the
    navbar drags the window; its controls stay clickable. Windows/Linux draw
    min/max/close over the right ~138px, macOS its traffic lights at the left. */

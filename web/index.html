@@ -43,6 +43,9 @@
         <i class="bi bi-code-slash me-1"></i>DEV
       </span>
     </div>
+    <!-- What the current view shows (the bench: its title, where it is
+         stored and whether it passes). Filled by the view; empty otherwise. -->
+    <div class="navbar-context" id="navbarContext" hidden></div>
     <div class="navbar-actions">
       <!-- Legacy broker chips/badge — kept in the DOM so existing app.js
            references (#connectionDot, #connectionLabel, #connectedBrokers)

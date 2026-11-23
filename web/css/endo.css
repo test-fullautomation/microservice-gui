@@ -201,17 +201,29 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.4rem 0.3rem 0.65rem;
-  background: var(--layer);
-  color: #14201A;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--rule, #D3D9D1);
+  color: var(--ink, #16201B);
   font-size: 0.8rem;
   font-weight: 600;
   min-height: 2rem;
+}
+/* The layer is a dot, as in the navigator and the status strip: colour
+   marks meaning (layer, state), it does not paint whole headers. */
+.endo-tile-head::before {
+  content: "";
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--layer, var(--l-runner, #E6EAEE));
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
 }
 .endo-tile-head .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .endo-tile-head .src {
   margin-left: auto;
   font: 400 0.66rem var(--font-mono, monospace);
-  opacity: 0.7;
+  color: var(--muted, #5A665F);
   white-space: nowrap;
 }
 .endo-refresh {
@@ -348,9 +360,11 @@
 }
 
 /* A module that shows no tiles still keeps its slot and says why (R10). */
-.bench-slot .endo-tile-head { background: var(--layer, var(--l-runner, #E6EAEE)); }
+.bench-slot .endo-tile-head .src { color: var(--warn); }
 .bench-slot.state-refused { border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
-.bench-slot.state-refused .endo-tile-head { background: color-mix(in srgb, var(--bad) 22%, var(--layer, #E6EAEE)); }
+.bench-slot.state-refused .endo-tile-head { background: color-mix(in srgb, var(--bad) 7%, var(--surface, #fff)); }
+.bench-slot.state-refused .endo-tile-head .src,
+.bench-slot.state-error .endo-tile-head .src { color: var(--bad); }
 .bench-slot.state-missing, .bench-slot.state-nogui { border-style: dashed; }
 .bench-slot-msg { font-size: 0.84rem; }
 .bench-rule {
