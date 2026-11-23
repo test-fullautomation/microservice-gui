@@ -9866,6 +9866,13 @@
     if (!_roles) return true;
     if (mode === 'services' || mode === 'bench' || mode === '__help__') return true;
     if (mode === 'fleet') return _roles.admin;
+    // A plugin's view: the role its navigator names (plugins.js sets data-role).
+    var tab = /^plugin:/.test(mode) && Array.prototype.filter.call(
+      document.querySelectorAll('#sidebarSwitch .sidebar-switch-tab[data-mode]'),
+      function (b) { return b.getAttribute('data-mode') === mode; })[0];
+    var role = tab ? tab.getAttribute('data-role') : '';
+    if (role === 'user') return true;
+    if (role === 'admin') return _roles.admin;
     return _roles.developer;   // Service Creator, test projects, plugin views
   }
 

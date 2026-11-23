@@ -47,7 +47,9 @@
     '--l-execution', '--l-runner', '--l-signals', '--l-bits',
     // light/dark (theme.css): a frame styled with these follows the theme
     '--color-scheme', '--surface-2', '--surface-3', '--rule-strong', '--accent-soft', '--accent-bright',
-    '--good-soft', '--warn-soft', '--bad-soft'];
+    '--good-soft', '--warn-soft', '--bad-soft',
+    // the dark left pane, for navigators drawn in it
+    '--sidebar-bg', '--sidebar-hover', '--sidebar-muted', '--sidebar-active'];
 
   // pingMs x missLimit: how long a frame may stop answering. startMs: how
   // long it may take to start (a new process each, so it varies with load).

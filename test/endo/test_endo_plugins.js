@@ -30,8 +30,8 @@ const rules = (issues, sev) => issues.filter((i) => !sev || i.severity === sev).
 (async () => {
   // ---------- the bundled plugins ----------
   const index = readJson(path.join(PLUGINS, 'index.json'));
-  check('index lists the six reference plugins',
-        JSON.stringify(index.plugins.slice().sort()) === JSON.stringify(['charts', 'flow-view', 'graph-studio', 'robot-gen', 'robot-grid', 'test-project']), index.plugins);
+  check('index lists the seven reference plugins',
+        JSON.stringify(index.plugins.slice().sort()) === JSON.stringify(['charts', 'flow-view', 'graph-studio', 'robot-gen', 'robot-grid', 'sessions', 'test-project']), index.plugins);
   const manifests = {};
   index.plugins.forEach((id) => {
     const m = manifests[id] = readJson(path.join(PLUGINS, id, 'plugin.json'));

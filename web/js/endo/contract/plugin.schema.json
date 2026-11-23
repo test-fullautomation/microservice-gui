@@ -122,7 +122,8 @@
           "icon": { "type": "string", "pattern": "^[a-z0-9-]+$" },
           "entry": { "$ref": "#/definitions/entry" },
           "shell": { "type": "string", "description": "a view the shell already has, e.g. testproject" },
-          "for": { "type": "array", "items": { "type": "string" } }
+          "for": { "type": "array", "items": { "type": "string" } },
+          "role": { "enum": ["user", "dev", "admin"], "description": "navigators: the view role that sees the tab (Settings -> View). user = everyone; dev (default) = the developer view; admin = the administrator view." }
         }
       }
     }

@@ -1,0 +1,17 @@
+{
+  "$schema": "../../js/endo/contract/plugin.schema.json",
+  "plugin": "sessions",
+  "version": "0.1.0",
+  "title": "Sessions (demo)",
+  "description": "Demo of a session manager as part of the GUI: a Sessions view in the nav rail, its left pane listing the sessions of every bench (running and finished), and a page with an overview and one session's console (state, actions, steps, devices, log). Simulated data (sim.js); it controls nothing.",
+  "requires": { "shell": "^2.3", "capabilities": [] },
+  "isolation": "frame",
+  "contributes": {
+    "navigators": [
+      { "id": "sessions", "title": "Sessions", "icon": "collection-play", "entry": "nav.js", "role": "user" }
+    ],
+    "stage.views": [
+      { "id": "sessions", "title": "Sessions", "entry": "view.js" }
+    ]
+  }
+}

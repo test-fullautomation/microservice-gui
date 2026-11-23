@@ -3690,7 +3690,9 @@ body.view-no-dev #btnDevTools,
 body.view-no-dev #devModePill,
 body.view-no-dev #ribbonDev,
 body.view-no-dev #devInspector,
-body.view-no-dev #sidebarSwitch .sidebar-switch-tab:not([data-mode="services"]):not([data-mode="bench"]),
+/* Plugin tabs: the role their navigator names (data-role, plugins.js). */
+body.view-no-dev #sidebarSwitch .sidebar-switch-tab:not([data-mode="services"]):not([data-mode="bench"]):not([data-role="user"]):not([data-role="admin"]),
+body.view-no-admin #sidebarSwitch .sidebar-switch-tab[data-role="admin"],
 body.view-no-admin #btnAdminTools,
 body.view-no-admin #ribbonAdmin {
   display: none !important;

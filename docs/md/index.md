@@ -184,6 +184,35 @@ kept per user. Components follow it when they style their frames with the
 theme tokens (`--surface`, `--text`, `--muted`, `--rule`, `--accent`,
 `--good`/`--warn`/`--bad` and their `-soft` fills, `--surface-2`/`-3`).
 
+### Sessions (demo plugin)
+
+The bundled plugin `web/plugins/sessions` shows how a session manager
+becomes part of the GUI rather than one service's tiles: a **Sessions**
+view in the nav rail (next to Services and Bench, for every user)
+lists the sessions of every bench, running and finished; the page shows
+an overview (live cards, finished sessions, counts, search) or, for the
+session you pick, its console: state and actions, progress, steps,
+devices and log. Pick a session in either place and the other follows.
+
+Its data is simulated from the clock (`sim.js`); its buttons control
+nothing and say so. It needs no service: start the GUI and open the tab
+(Ctrl+K "sessions"). Turn it off under *Administrator → Plugins*.
+
+For plugin authors, this is what it uses:
+
+- `"role": "user"` on the navigator: the tab is for every user (the
+  default, `dev`, shows it in the developer view only; `admin` in the
+  administrator view);
+- the navigator and the stage view are two frames: what one passes to
+  `ctx.reveal(target)` becomes the other's selection (`ctx.selection()`,
+  `ctx.onSelection(fn)`);
+- the theme tokens, and in the left pane `--sidebar-text`,
+  `--sidebar-muted`, `--sidebar-hover`, `--sidebar-active`.
+
+A real session manager would deliver the same plugin itself
+(`Meta.gui_plugin`, see the Services guide) bound to its service, and the
+plugin would ask it through `ctx.call` instead of `sim.js`.
+
 ## Startup: services ready when the GUI opens
 
 The desktop app can bring up everything the services need as it opens,

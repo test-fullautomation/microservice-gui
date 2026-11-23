@@ -503,6 +503,8 @@
       b.setAttribute('aria-selected', 'false');
       b.setAttribute('data-mode', mode);
       b.setAttribute('data-endo-plugin', p.id);
+      // Who sees the tab (app.js _viewAllows, style.css): the developer view unless the plugin says.
+      b.setAttribute('data-role', nav.role || 'dev');
       b.title = nav.title;
       b.innerHTML = '<i class="bi bi-' + esc(nav.icon || 'puzzle') + '"></i><span>' + esc(nav.title) + '</span>';
       b.addEventListener('click', function () { hooks.switchMode(mode); });
@@ -556,11 +558,23 @@
     var slot = viewInstances[mode] = viewInstances[mode] || {};
     var side = document.querySelector('.sidebar-mode[data-endo-mode="' + cssEsc(mode) + '"] .sidebar-content');
     var content = document.querySelector('.app-content > [data-endo-mode="' + cssEsc(mode) + '"]');
+    // The navigator and its stage view are two frames: what one reveals
+    // (ctx.reveal(target), plain data) becomes the other's selection
+    // (ctx.selection() / ctx.onSelection), e.g. the item clicked in a list.
+    var handles = slot.handles = slot.handles || {};
+    var other = { sidebar: 'content', content: 'sidebar' };
     [['sidebar', nav, side], ['content', view, content]].forEach(function (t) {
       var key = t[0], spec = t[1], el = t[2];
       if (!spec || !el) return;
       if (slot[key]) { slot[key].resume(); return; }
-      slot[key] = frameInstance(inFrame(p, el, spec.entry, 'mount', [], pluginCtx(p), spec.title + ' (' + p.manifest.title + ')'));
+      var onReveal = function (target) {
+        slot.selection = target;
+        var h = handles[other[key]];
+        if (h) h.setSelection(target);
+      };
+      handles[key] = inFrame(p, el, spec.entry, 'mount', [], pluginCtx(p), spec.title + ' (' + p.manifest.title + ')',
+                             slot.selection || null, onReveal);
+      slot[key] = frameInstance(handles[key]);
     });
   }
 
