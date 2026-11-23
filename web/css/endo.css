@@ -1,13 +1,11 @@
 /*
  * Bench Endoskeleton components (contract v1): the stage and its tiles.
- * Colours come from theme.css tokens; tile headers wear the component's
- * layer colour from the TAG layer chart (slide 7).
+ * Colours come from theme.css tokens (light and dark, incl. --good /
+ * --warn / --bad); a tile shows its component's layer colour from the TAG
+ * layer chart (slide 7) as a dot in its header.
  */
 
 .endo-comp {
-  --good: #1E8449;
-  --warn: #A96A12;
-  --bad: #B83227;
   container-type: inline-size;
   display: grid;
   gap: 0.75rem;
@@ -27,7 +25,7 @@
   padding: 0.12rem 0.55rem;
   border-radius: 999px;
   background: var(--layer);
-  color: #14201A;
+  color: var(--ink);
 }
 .endo-id { font: 0.76rem var(--font-mono, monospace); color: var(--muted, #5A665F); }
 .endo-lint {
@@ -229,7 +227,7 @@
 .endo-refresh {
   border: none;
   background: transparent;
-  color: #14201A;
+  color: var(--ink);
   border-radius: 4px;
   padding: 0.05rem 0.35rem;
   line-height: 1;
@@ -326,9 +324,7 @@
 
 /* ================= Bench (milestone M2): stage + dock + status strip ================= */
 .bench {
-  --good: #1E8449;
-  --warn: #A96A12;
-  --bad: #B83227;
+  /* --good / --warn / --bad come from theme.css (light and dark). */
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "main" "status";
@@ -380,7 +376,7 @@
   grid-area: dock;
   position: sticky;
   top: 0;
-  max-height: calc(100vh - var(--navbar-height) - var(--ribbon-height) - 3rem);
+  max-height: calc(100vh - var(--statusbar-height, 0px) - var(--navbar-height) - var(--ribbon-height) - 3rem);
   overflow: auto;
   background: var(--surface, #fff);
   border: 1px solid var(--rule, #D3D9D1);
@@ -465,7 +461,7 @@
   padding-top: 0.15rem;
   padding-bottom: 0.15rem;
 }
-.bench-picker option { color: #14201A; }
+.bench-picker option { color: var(--ink); }
 .bench-picker-actions { display: flex; gap: 0.25rem; }
 .bench-mini {
   color: rgba(255, 255, 255, 0.85);
@@ -483,13 +479,13 @@
 /* Edit composition: the visual list (bench.js, "visual editor"). */
 .bench-edit-tabs { margin-bottom: 0.6rem; }
 .bench-vis-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.bench-vis-empty { color: #6c7a86; font-size: 0.88rem; padding: 0.5rem 0; }
+.bench-vis-empty { color: var(--muted); font-size: 0.88rem; padding: 0.5rem 0; }
 .bench-vis-row {
   display: flex; align-items: flex-start; gap: 8px;
-  padding: 8px 10px; border: 1px solid #dfe6ea; border-radius: 6px; background: #fff;
+  padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface);
 }
 .bench-vis-row.bench-vis-off { background: #f6f8f9; }
-.bench-vis-row.bench-vis-off .bench-vis-head strong { color: #6c7a86; font-weight: 500; }
+.bench-vis-row.bench-vis-off .bench-vis-head strong { color: var(--muted); font-weight: 500; }
 .bench-vis-row.bench-vis-dragging { opacity: 0.45; }
 .bench-vis-row.bench-vis-above { box-shadow: 0 -3px 0 0 var(--accent, #127A69); }
 .bench-vis-row.bench-vis-below { box-shadow: 0 3px 0 0 var(--accent, #127A69); }
@@ -498,14 +494,14 @@
 .bench-vis-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .bench-vis-head .form-check-input { margin: 0; }
 .bench-vis-head label { cursor: pointer; }
-.bench-vis-folder { font-size: 0.78rem; color: #6c7a86; }
+.bench-vis-folder { font-size: 0.78rem; color: var(--muted); }
 .bench-vis-gui { display: flex; align-items: center; gap: 8px; margin: 6px 0 0 22px; max-width: 360px; }
-.bench-vis-gui label { white-space: nowrap; color: #6c7a86; }
+.bench-vis-gui label { white-space: nowrap; color: var(--muted); }
 .bench-vis-tiles { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0 22px; }
 .bench-vis-tile { display: inline-flex; align-items: center; gap: 5px; font-size: 0.86rem; cursor: pointer; }
 .bench-vis-tile .form-check-input { margin: 0; }
-.bench-vis-tile code { font-size: 0.74rem; color: #6c7a86; }
-.bench-vis-kind { font-size: 0.7rem; color: #6c7a86; border: 1px solid #dfe6ea; border-radius: 3px; padding: 0 4px; }
+.bench-vis-tile code { font-size: 0.74rem; color: var(--muted); }
+.bench-vis-kind { font-size: 0.7rem; color: var(--muted); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
 .bench-vis-tiles > div { flex-basis: 100%; }
 .bench-vis-move { display: flex; flex-direction: column; }
 .bench-vis-move .btn { padding: 0 6px; line-height: 1.2; text-decoration: none; }

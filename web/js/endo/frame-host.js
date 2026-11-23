@@ -36,12 +36,18 @@
   var CSP = "default-src 'none'; script-src 'unsafe-inline' blob:; style-src 'unsafe-inline'; " +
             "img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; " +
             "frame-src 'none'; worker-src 'none'; form-action 'none'; base-uri 'none'";
-  var BASE_CSS = 'html,body{margin:0;padding:0;background:transparent;color:var(--text,#14201A);' +
+  // color-scheme follows the page's: Chromium paints a frame whose scheme
+  // differs from its page's on an opaque canvas (white under dark text).
+  var BASE_CSS = 'html{color-scheme:var(--color-scheme,light)}' +
+    'html,body{margin:0;padding:0;background:transparent;color:var(--text,#14201A);' +
     'font-family:var(--font-sans,system-ui),system-ui,"Segoe UI",sans-serif;font-size:14px}' +
     '#endo-root{box-sizing:border-box;padding:.65rem .75rem;min-height:100%}*,*::before,*::after{box-sizing:inherit}';
   var THEME_TOKENS = ['--accent', '--surface', '--rule', '--muted', '--text', '--content-bg', '--font-sans', '--font-mono',
     '--good', '--warn', '--bad', '--navbar-bg', '--sidebar-text', '--l-operator', '--l-session', '--l-config',
-    '--l-execution', '--l-runner', '--l-signals', '--l-bits'];
+    '--l-execution', '--l-runner', '--l-signals', '--l-bits',
+    // light/dark (theme.css): a frame styled with these follows the theme
+    '--color-scheme', '--surface-2', '--surface-3', '--rule-strong', '--accent-soft', '--accent-bright',
+    '--good-soft', '--warn-soft', '--bad-soft'];
 
   // pingMs x missLimit: how long a frame may stop answering. startMs: how
   // long it may take to start (a new process each, so it varies with load).

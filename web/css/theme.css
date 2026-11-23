@@ -46,12 +46,26 @@
   --sidebar-muted: #93A29A;
   --sidebar-active: #127A69;
 
-  /* content */
+  /* content: the light theme. [data-theme="dark"] below redefines these;
+     style every content colour through them, never with a literal. */
+  --color-scheme: light;   /* sent to sandboxed frames (frame-host.js) */
   --content-bg: #EEF1EC;
-  --surface: #FFFFFF;
+  --surface: #FFFFFF;      /* tiles, cards, panels */
+  --surface-2: #F6F8F6;    /* a raised or alternate row inside a surface */
+  --surface-3: #E9EDE9;    /* wells, table heads, tracks */
   --ink: #16201B;
+  --text: #16201B;         /* the name sandboxed frames read (frame-host.js) */
   --muted: #5A665F;
   --rule: #D3D9D1;
+  --rule-strong: #B9C2BB;
+
+  /* state: text/marks, and a soft fill behind them */
+  --good: #1E8449;
+  --warn: #A96A12;
+  --bad: #B83227;
+  --good-soft: #E6F6EC;
+  --warn-soft: #FFF4E0;
+  --bad-soft: #FDECEA;
 
   /* one accent. #127A69 holds 5.2:1 against white and reads on the dark
      chrome as a fill; --accent-bright is for small marks on dark. */
@@ -101,7 +115,67 @@
   --bs-focus-ring-color: rgba(18, 122, 105, 0.25);
   /* Bootstrap's pink inline code clashed with the palette */
   --bs-code-color: #0E6152;
+  --bs-body-bg: var(--surface);
+  --bs-secondary-bg: var(--surface-3);
+  --bs-tertiary-bg: var(--surface-2);
+  --bs-secondary-color: var(--muted);
 }
+
+/* ---------- dark theme (js/Theme.js sets data-theme) ---------- */
+/* Same graphite-green family as the chrome, one step lighter per layer:
+   content-bg < surface < surface-2 < surface-3. Text holds 12:1 on
+   --surface, --muted 6:1; the accent is lifted so it reads as text. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-scheme: dark;
+  --content-bg: #0F1613;
+  --surface: #161F1B;
+  --surface-2: #1B2621;
+  --surface-3: #22302A;
+  --ink: #E3EAE5;
+  --text: #E3EAE5;
+  --muted: #9AA9A1;
+  --rule: #2C3933;
+  --rule-strong: #3E4D46;
+
+  --good: #4CC27A;
+  --warn: #E0A43A;
+  --bad: #F2685F;
+  --good-soft: #15301F;
+  --warn-soft: #33290F;
+  --bad-soft: #3A1B18;
+
+  --accent: #1E8C77;
+  --accent-hover: #23A088;
+  --accent-active: #1A7A68;
+  --accent-soft: #163A32;
+  --accent-bright: #4FD1B3;
+
+  --bs-body-color: #E3EAE5;
+  --bs-body-color-rgb: 227, 234, 229;
+  --bs-border-color: #2C3933;
+  --bs-emphasis-color: #F4F7F5;
+  --bs-primary: #1E8C77;
+  --bs-primary-rgb: 30, 140, 119;
+  --bs-primary-bg-subtle: #163A32;
+  --bs-primary-border-subtle: #22594D;
+  --bs-primary-text-emphasis: #8FDCCB;
+  --bs-link-color: #4FD1B3;
+  --bs-link-color-rgb: 79, 209, 179;
+  --bs-link-hover-color: #7FE0C9;
+  --bs-link-hover-color-rgb: 127, 224, 201;
+  --bs-code-color: #8FDCCB;
+}
+:root[data-theme="dark"] .alert-info {
+  --bs-alert-color: #8FDCCB;
+  --bs-alert-border-color: #22594D;
+  --bs-alert-link-color: #8FDCCB;
+}
+:root[data-theme="dark"] .accordion { --bs-accordion-active-color: #8FDCCB; }
+/* Bootstrap's light-only helpers follow the theme. */
+:root[data-theme="dark"] .bg-light { background-color: var(--surface-2) !important; }
+:root[data-theme="dark"] .text-dark { color: var(--ink) !important; }
+:root[data-theme="dark"] .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
 
 /* Info alerts take the accent instead of Bootstrap's cyan. */
 .alert-info {

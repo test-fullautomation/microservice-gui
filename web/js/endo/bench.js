@@ -323,8 +323,15 @@
     var comp = state.comp;
     state.signature = signatureOf(services());
     state.dirty = false;
-    teardown();   // the old tiles stop before their DOM goes (R5)
-    el.innerHTML = '<div class="bench-loading"><span class="spinner-border spinner-border-sm me-2"></span>Composing the bench…</div>';
+    // The old tiles stay (and keep running) until the new ones are drawn:
+    // no blank stage on every reload. draw() stops them before their DOM
+    // goes (R5). Only the very first bench says it is composing.
+    if (!el.querySelector('.bench')) {
+      teardown();
+      el.innerHTML = '<div class="bench-loading"><span class="spinner-border spinner-border-sm me-2"></span>Composing the bench…</div>';
+    }
+    var busy = function (on) { if (MM.statusBar) MM.statusBar.busy('bench', on); };
+    busy(true);
 
     return lintComp(comp).then(function (compIssues) {
       if (token !== state.token) return null;
@@ -343,6 +350,11 @@
       draw(el);
       if (!state.active) state.group.suspend();
       if (hooks.setRibbonTab && state.active && comp.role) hooks.setRibbonTab(comp.role);
+    }).then(function () {
+      if (token === state.token) busy(false);   // a newer render keeps the line
+    }, function (err) {
+      if (token === state.token) busy(false);
+      throw err;
     });
   }
 
@@ -374,12 +386,34 @@
       '</div>';
   }
 
-  /** Show the bench's title in the navbar while the bench is the view. */
+  /** How many components the bench shows, and how many need a look: in the status bar. */
+  function compSummaryHtml() {
+    var n = state.modules.length;
+    var count = {};
+    state.modules.forEach(function (m) { if (m.state !== 'ok') count[m.state] = (count[m.state] || 0) + 1; });
+    var parts = ['<b>' + n + '</b> component' + (n === 1 ? '' : 's')];
+    Object.keys(count).forEach(function (st) {
+      var cls = st === 'refused' || st === 'error' ? 'bad' : 'warn';
+      parts.push('<span class="' + cls + '">' + count[st] + ' ' + esc(STATE_LABEL[st] || st) + '</span>');
+    });
+    var plugins = (state.comp && state.comp.plugins) || [];
+    if (plugins.length && MM.endo.plugins) {
+      var off = plugins.filter(function (id) { return MM.endo.plugins.state(id) !== 'active'; }).length;
+      parts.push(off ? '<span class="warn">' + off + ' of ' + plugins.length + ' plugins not active</span>'
+                     : plugins.length + ' plugin' + (plugins.length === 1 ? '' : 's'));
+    }
+    return parts.join(' · ');
+  }
+
+  /** While the bench is the view: its title in the navbar, its summary in the status bar. */
   function drawContext() {
+    var on = state.active && !!state.comp;
     var bar = document.getElementById('navbarContext');
-    if (!bar) return;
-    bar.hidden = !state.active || !state.comp;
-    bar.innerHTML = bar.hidden ? '' : compTitleHtml();
+    if (bar) {
+      bar.hidden = !on;
+      bar.innerHTML = on ? compTitleHtml() : '';
+    }
+    if (MM.statusBar) MM.statusBar.setContext(on ? compSummaryHtml() : '');
   }
 
   /** Above the stage: only what needs reading (note, warnings, refusal). */
@@ -1435,6 +1469,15 @@
     selection: selectionInfo,
     reload: reload,
     choose: choose,
+    /** Select a component's tile and show its details (the command palette). */
+    focus: selectComponent,
+    /** The components on the bench, for the command palette. */
+    components: function () {
+      return state.modules.map(function (m) {
+        return { id: K().moduleId(m), title: (m.manifest && m.manifest.title) || '',
+                 service: (m.entry && m.entry.service) || '', state: m.state };
+      });
+    },
     /** For probes and tests: what the bench currently shows. */
     snapshot: function () {
       return {

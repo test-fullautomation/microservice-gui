@@ -12,6 +12,8 @@
   <link rel="stylesheet" href="css/endo.css">
   <!-- Bench theme: palette, fonts and Bootstrap overrides. Keep it last. -->
   <link rel="stylesheet" href="css/theme.css">
+  <!-- Light / dark before the first paint (no flash of the other theme). -->
+  <script src="js/Theme.js"></script>
   <title>Microservice Manager</title>
 </head>
 <body>
@@ -56,6 +58,11 @@
         <span id="connectionLabel">Disconnected</span>
       </span>
 
+      <!-- Command palette (js/CommandPalette.js) -->
+      <button class="navbar-search" id="btnCommandPalette" type="button" title="Search commands (Ctrl+K)">
+        <i class="bi bi-search"></i><span>Search commands…</span><kbd>Ctrl K</kbd>
+      </button>
+
       <button class="btn-help" id="btnRibbonToggle" type="button"
               title="Pin the ribbon open">
         <i class="bi bi-pin-angle"></i>
@@ -66,10 +73,9 @@
       <button class="btn-help" id="btnHelp" title="User Guide">
         <i class="bi bi-question-circle"></i>
       </button>
-      <button class="btn-settings" id="btnSettings" title="Settings">
-        <i class="bi bi-gear"></i>
-      </button>
     </div>
+    <!-- Thin progress line while a view works (MM.statusBar.busy). -->
+    <div class="app-progress" id="appProgress" hidden><i></i></div>
   </nav>
 
   <!-- ===== Ribbon band: the selected group's commands ===== -->
@@ -242,6 +248,33 @@
     </div>
   </div>
 
+  <!-- ===== Nav rail: the views (and, at its foot, configuration and theme) ===== -->
+  <!-- The view tabs keep their ids and classes (#sidebarSwitch ...): app.js
+       and plugins.js find them there, and plugins add their navigators to
+       it, e.g. Sessions or test-project's "Project". -->
+  <nav class="app-rail" id="appRail" aria-label="Views">
+    <div class="sidebar-switch" id="sidebarSwitch">
+      <div class="sidebar-switch-group" role="tablist" aria-orientation="vertical" aria-label="Views">
+        <button type="button" class="sidebar-switch-tab active" id="sidebarSwitchServices" title="Services (Ctrl+1)"
+                role="tab" aria-selected="true" data-mode="services">
+          <i class="bi bi-box-seam"></i><span>Services</span>
+        </button>
+        <button type="button" class="sidebar-switch-tab" id="sidebarSwitchBench" title="Bench: the modules of the shown composition (Ctrl+2)"
+                role="tab" aria-selected="false" data-mode="bench">
+          <i class="bi bi-grid-1x2"></i><span>Bench</span>
+        </button>
+      </div>
+    </div>
+    <div class="rail-foot">
+      <button type="button" class="rail-btn" id="railTheme" title="Dark theme" aria-label="Dark theme">
+        <i class="bi bi-moon"></i>
+      </button>
+      <button type="button" class="rail-btn" id="btnSettings" title="Configuration (Ctrl+,)">
+        <i class="bi bi-gear"></i><span>Config</span>
+      </button>
+    </div>
+  </nav>
+
   <!-- ===== Layout ===== -->
   <div class="app-layout">
 
@@ -280,21 +313,6 @@
         </div>
         <div class="fleet-hub-list" id="fleetHubList">
           <!-- Hub items dynamically inserted here -->
-        </div>
-      </div>
-
-      <!-- Footer tabs: switch the left pane (and the view). Plugins add
-           their navigators here, e.g. test-project's "Project". -->
-      <div class="sidebar-switch" id="sidebarSwitch">
-        <div class="sidebar-switch-group" role="tablist" aria-label="Left pane view">
-          <button type="button" class="sidebar-switch-tab active" id="sidebarSwitchServices" title="Running services"
-                  role="tab" aria-selected="true" data-mode="services">
-            <i class="bi bi-box-seam"></i><span>Services</span>
-          </button>
-          <button type="button" class="sidebar-switch-tab" id="sidebarSwitchBench" title="Bench: the modules of the shown composition"
-                  role="tab" aria-selected="false" data-mode="bench">
-            <i class="bi bi-grid-1x2"></i><span>Bench</span>
-          </button>
         </div>
       </div>
     </aside>
@@ -337,6 +355,9 @@
     <aside class="dev-inspector" id="devInspector" hidden></aside>
 
   </div>
+
+  <!-- ===== Status bar: bridge / Consul / Nomad, the view, the version (js/StatusBar.js) ===== -->
+  <footer class="app-statusbar" id="appStatusbar" aria-label="Status"></footer>
 
   <!-- ===== Login Modal ===== -->
   <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
@@ -470,7 +491,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-gear me-2"></i>Settings</h5>
+          <h5 class="modal-title"><i class="bi bi-gear me-2"></i>Configuration</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body" id="settingsModalBody"></div>
@@ -548,6 +569,8 @@
   <script src="js/ConsulDashboard.js"></script>
   <script src="js/BridgeControl.js"></script>
   <script src="js/InfraStatus.js"></script>
+  <script src="js/StatusBar.js"></script>
+  <script src="js/CommandPalette.js"></script>
   <script src="js/GrpcClient.js"></script>
   <script src="js/TestProjectClient.js"></script>
   <script src="js/tp-debug.js"></script>

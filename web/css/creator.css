@@ -96,7 +96,7 @@
 }
 
 .creator-header p {
-  color: #7f8c8d;
+  color: var(--muted);
   margin-bottom: 0;
   font-size: 0.9rem;
 }
@@ -107,13 +107,13 @@
   justify-content: space-between;
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--rule);
 }
 
 /* ---------- API Method Cards ---------- */
 .creator-method-card {
-  background: #fff;
-  border: 1px solid #dee2e6;
+  background: var(--surface);
+  border: 1px solid var(--rule);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 0.75rem;
@@ -165,7 +165,7 @@
 .creator-param-row .btn-remove-param {
   background: none;
   border: none;
-  color: #95a5a6;
+  color: var(--muted);
   cursor: pointer;
   padding: 0.3rem;
   flex-shrink: 0;
@@ -191,8 +191,8 @@
 
 /* ---------- Summary Card ---------- */
 .creator-summary {
-  background: #fff;
-  border: 1px solid #dee2e6;
+  background: var(--surface);
+  border: 1px solid var(--rule);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 1rem;
@@ -213,7 +213,7 @@
 .creator-summary-row {
   display: flex;
   padding: 0.4rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--rule);
   font-size: 0.85rem;
 }
 
@@ -223,7 +223,7 @@
 
 .creator-summary-label {
   font-weight: 600;
-  color: #7f8c8d;
+  color: var(--muted);
   width: 140px;
   flex-shrink: 0;
 }
@@ -238,7 +238,7 @@
 }
 
 .creator-summary-method {
-  background: #f8f9fa;
+  background: var(--surface-2);
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   margin-bottom: 0.5rem;
@@ -319,8 +319,8 @@
   min-height: 280px;
   max-height: 500px;
   overflow: auto;
-  background: #fff;
-  border: 1px solid #dee2e6;
+  background: var(--surface);
+  border: 1px solid var(--rule);
   border-radius: 6px;
   padding: 0.75rem;
 }
@@ -330,9 +330,9 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  border: 2px dashed #bdc3c7;
+  border: 2px dashed var(--rule-strong);
   border-radius: 6px;
-  color: #7f8c8d;
+  color: var(--muted);
   font-size: 0.85rem;
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s;

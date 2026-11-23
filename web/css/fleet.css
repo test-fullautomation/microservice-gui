@@ -11,7 +11,7 @@
 
 .fleet-stat-card {
   flex: 1;
-  background: #fff;
+  background: var(--surface);
   border-radius: 8px;
   padding: 1.25rem;
   text-align: center;
@@ -27,7 +27,7 @@
 
 .fleet-stat-label {
   font-size: 0.8rem;
-  color: #95a5a6;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 0.25rem;
@@ -42,7 +42,7 @@
 
 /* ---------- Hub Card ---------- */
 .fleet-hub-card {
-  background: #fff;
+  background: var(--surface);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -59,7 +59,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--rule);
 }
 
 .fleet-hub-card-title {
@@ -77,7 +77,7 @@
   flex-direction: column;
   gap: 0.25rem;
   font-size: 0.82rem;
-  color: #7f8c8d;
+  color: var(--muted);
 }
 
 .fleet-hub-processes {
@@ -103,7 +103,7 @@
 
 .fleet-process-tag.stopped {
   background: var(--sidebar-text);
-  color: #95a5a6;
+  color: var(--muted);
 }
 
 .fleet-process-tag.dead {
@@ -270,7 +270,7 @@
   flex-wrap: wrap;
   gap: 0.5rem 1.5rem;
   font-size: 0.85rem;
-  color: #7f8c8d;
+  color: var(--muted);
 }
 
 .fleet-detail-toolbar {
@@ -286,7 +286,7 @@
 
 .fleet-process-item {
   padding: 0.5rem 0.25rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--rule);
 }
 
 .fleet-process-item:last-child {
@@ -323,7 +323,7 @@
 }
 
 .fleet-process-item.stopped .fleet-process-name {
-  color: #95a5a6;
+  color: var(--muted);
 }
 
 .fleet-process-item.dead .fleet-process-name {
@@ -344,7 +344,7 @@
 
 .fleet-process-state-label.stopped {
   background: rgba(0, 0, 0, 0.05);
-  color: #95a5a6;
+  color: var(--muted);
 }
 
 .fleet-process-state-label.dead {
@@ -366,7 +366,7 @@
   justify-content: center;
   min-height: 60vh;
   text-align: center;
-  color: #7f8c8d;
+  color: var(--muted);
 }
 
 .fleet-configure-icon {
@@ -472,9 +472,9 @@
 .fleet-cfg-detail {
   margin-top: 0.4rem;
   padding: 0.5rem 0.75rem;
-  background: #f8f9fa;
+  background: var(--surface-2);
   border-radius: 4px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--rule);
 }
 
 .fleet-cfg-table {
@@ -490,13 +490,13 @@
 }
 
 .fleet-cfg-table tr:not(:last-child) td {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--rule);
 }
 
 .fleet-cfg-label {
   font-weight: 600;
   white-space: nowrap;
-  color: #7f8c8d;
+  color: var(--muted);
   width: 100px;
 }
 
@@ -513,20 +513,20 @@
    ========================================================================== */
 
 .fleet-sub-tabs {
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--rule);
   margin-bottom: 1rem;
 }
 
 .fleet-sub-tabs .nav-link {
   font-size: 0.85rem;
   font-weight: 500;
-  color: #7f8c8d;
+  color: var(--muted);
   padding: 0.5rem 1rem;
 }
 
 .fleet-sub-tabs .nav-link.active {
   color: var(--sidebar-bg);
-  border-color: #dee2e6 #dee2e6 #fff;
+  border-color: var(--rule) var(--rule) #fff;
 }
 
 .fleet-tab-content {
@@ -541,7 +541,7 @@
   justify-content: center;
   min-height: 50vh;
   text-align: center;
-  color: #7f8c8d;
+  color: var(--muted);
 }
 
 .local-hub-setup-icon {
@@ -613,9 +613,9 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 1.5rem 1rem;
-  border: 2px dashed #bdc3c7;
+  border: 2px dashed var(--rule-strong);
   border-radius: 8px;
-  color: #7f8c8d;
+  color: var(--muted);
   font-size: 0.85rem;
   text-align: center;
   cursor: pointer;

@@ -359,6 +359,7 @@
       '</div>';
 
     container.appendChild(toastEl);
+    container.scrollTop = container.scrollHeight;   // the newest stays in view (the stack has a max height)
     var toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 4000 });
     toast.show();
 
@@ -8699,6 +8700,13 @@
 
   _wire('btnRibbonToggle', function () { _setRibbonPinned(!_ribbonPinned()); });
 
+  // Show one tab's commands without changing the view (the status bar's
+  // Bridge item opens the User tab, where the bridge is started and stopped).
+  MM.showRibbon = function (tab) {
+    _setRibbonTab(tab);
+    _openRibbon(tab);
+  };
+
   // Hide the dropped-down band after a command, a click anywhere else, Esc,
   // or focus leaving the window (clicks into an embedded GUI's iframe never
   // reach this document). Toggles and bridge buttons keep it open, since
@@ -9461,6 +9469,7 @@
             : 'Takes effect when you save.') +
           '</div>' +
         '</div>' +
+        _themeChoiceHtml() +
         '<div class="mb-3">' +
           '<label for="settingPythonPath" class="form-label fw-semibold">Python Path</label>' +
           '<input type="text" class="form-control" id="settingPythonPath" ' +
@@ -9559,6 +9568,57 @@
 
     _wireSettingsBrowseButtons();
     _wireStartupButtons();
+    _wireThemeChoice();
+  }
+
+  // Theme: light, dark or the system's. Applies at once (js/Theme.js keeps
+  // it per user), so it needs no Save.
+  function _themeChoiceHtml() {
+    if (!MM.theme) return '';
+    var now = MM.theme.get();
+    var opt = function (value, label) {
+      var id = 'settingTheme_' + value;
+      return '<input type="radio" class="btn-check" name="settingTheme" id="' + id + '" value="' + value + '"' +
+        (now === value ? ' checked' : '') + '>' +
+        '<label class="btn btn-outline-primary btn-sm" for="' + id + '">' + label + '</label>';
+    };
+    return '<div class="mb-3">' +
+        '<div class="form-label fw-semibold">Theme</div>' +
+        '<div class="btn-group" role="group" aria-label="Theme">' +
+          opt('light', '<i class="bi bi-sun me-1"></i>Light') +
+          opt('dark', '<i class="bi bi-moon me-1"></i>Dark') +
+          opt('system', '<i class="bi bi-circle-half me-1"></i>System') +
+        '</div>' +
+        '<div class="form-text">Applies at once. Also: Ctrl+K, "theme".</div>' +
+      '</div>' +
+      _statusBarChoiceHtml();
+  }
+
+  // What the status bar shows (js/StatusBar.js); also by right-clicking it.
+  function _statusBarChoiceHtml() {
+    if (!MM.statusBar || !MM.statusBar.ITEMS) return '';
+    var on = MM.statusBar.items();
+    return '<div class="mb-3">' +
+        '<div class="form-label fw-semibold">Status bar</div>' +
+        MM.statusBar.ITEMS.map(function (g) {
+          var id = 'settingStatus_' + g.key;
+          return '<div class="form-check">' +
+            '<input class="form-check-input" type="checkbox" id="' + id + '" data-status-item="' + g.key + '"' +
+              (on[g.key] ? ' checked' : '') + '>' +
+            '<label class="form-check-label" for="' + id + '">' + _escapeHtml(g.label) +
+              ' <span class="text-body-secondary">&mdash; ' + _escapeHtml(g.hint) + '</span></label></div>';
+        }).join('') +
+        '<div class="form-text">Applies at once. Also: right-click the status bar.</div>' +
+      '</div>';
+  }
+
+  function _wireThemeChoice() {
+    document.querySelectorAll('input[name="settingTheme"]').forEach(function (r) {
+      r.addEventListener('change', function () { if (r.checked && MM.theme) MM.theme.set(r.value); });
+    });
+    document.querySelectorAll('input[data-status-item]').forEach(function (c) {
+      c.addEventListener('change', function () { MM.statusBar.show(c.getAttribute('data-status-item'), c.checked); });
+    });
   }
 
   function _startupBox(id, label, on) {

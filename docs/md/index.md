@@ -147,6 +147,43 @@ released". With `--dev` the view roles apply as usual.
 The GUI runs once per user. Starting the dev shortcut while the normal GUI
 runs asks whether to restart it in dev mode.
 
+## Views, commands, keys, status bar and theme
+
+The **nav rail** at the left edge switches the view: Services, Bench,
+and the views plugins add (Sessions; Project in the developer view). The
+left pane next to it shows the current view's list. At the rail's foot:
+the theme (sun/moon) and **Config**, the configuration.
+
+**Ctrl+K** (or the search box in the navbar) opens the command palette:
+type a few letters of anything the window can do — a view, a ribbon
+button, a service, a component on the bench, a theme — and press Enter.
+It lists only what your view roles show.
+
+| Key | Does |
+|---|---|
+| Ctrl+K, Ctrl+Shift+P | command palette |
+| Ctrl+1 / Ctrl+2 | Services / Bench |
+| Ctrl+, | Configuration |
+| F1 | user guide |
+| Ctrl+R | reload the window |
+
+Keys pressed inside a component's tile stay in that tile; click outside it first.
+
+The **status bar** along the bottom is quiet by default: a light per
+connection (Bridge, Consul, Nomad; a word only when one is down or
+starting; click Bridge to start or stop it) and the GUI version, with
+**dev** on a `--dev` run. Right-click it, or open *Config → Status bar*,
+to choose what it shows: connections, a view summary (on the Bench: how
+many components, and which need a look), the version. A thin line under
+the navbar moves while the Bench is composing; the old tiles stay until
+the new ones are ready.
+
+**Theme:** light, dark or the system's, in *Config → Theme*, from the
+sun/moon at the foot of the nav rail, or Ctrl+K "theme". It applies at once and is
+kept per user. Components follow it when they style their frames with the
+theme tokens (`--surface`, `--text`, `--muted`, `--rule`, `--accent`,
+`--good`/`--warn`/`--bad` and their `-soft` fills, `--surface-2`/`-3`).
+
 ## Startup: services ready when the GUI opens
 
 The desktop app can bring up everything the services need as it opens,
@@ -464,7 +501,7 @@ dialog opens with `open()`, never `exec()`.
 
 ### The bench: one screen from many services
 
-**User → Bench** (or the **Bench** tab under the left pane) shows the
+**User → Bench** (or **Bench** in the nav rail) shows the
 tiles of several services' components on one 4-column stage. Which
 services, and in which order, is a **composition**:
 
@@ -529,7 +566,7 @@ what it added at once, and tiles of its kinds show *enable the plugin*.
 | Plugin | Adds |
 |---|---|
 | `charts` | tile kind `signal-strip` (live sparklines), drawer tab *Chart* for the selected tile's signals |
-| `test-project` | the *Project* tab under the left pane, the project view, the *Test project* ribbon group |
+| `test-project` | the *Project* view in the nav rail, the project view, the *Test project* ribbon group |
 | `flow-view` | the *Diagram* tab of flow files and run groups in the project view (file views for types `flow-graph` and `flow-group`) |
 | `robot-grid` | the *Grid* tab of suites and resources in the project view (file view for type `robot-grid`) |
 | `robot-gen` | *Robot Resources* in the Developer tab's Build group |

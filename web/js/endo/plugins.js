@@ -521,13 +521,15 @@
   function ensureViewContainers(p, entry, mode) {
     if (document.querySelector('[data-endo-mode="' + cssEsc(mode) + '"]')) return;
     var aside = document.querySelector('.app-sidebar');
+    // The view tabs live in the nav rail, outside the left pane; if a page
+    // still has them at the pane's foot, the pane goes above them.
     var sw = document.getElementById('sidebarSwitch');
     var side = document.createElement('div');
     side.className = 'sidebar-mode';
     side.setAttribute('data-endo-mode', mode);
     side.setAttribute('data-endo-plugin', p.id);
     side.innerHTML = '<div class="sidebar-content"></div>';
-    if (aside) aside.insertBefore(side, sw || null);
+    if (aside) aside.insertBefore(side, sw && sw.parentNode === aside ? sw : null);
     var main = document.querySelector('.app-content');
     var content = document.createElement('div');
     content.style.display = 'none';
