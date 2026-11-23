@@ -66,6 +66,31 @@ html, body {
   gap: 0.75rem;
 }
 
+/* Desktop app without a native title bar (set by electron/preload.js): the
+   navbar drags the window; its controls stay clickable. Windows/Linux draw
+   min/max/close over the right ~138px, macOS its traffic lights at the left. */
+html.frameless .app-navbar {
+  -webkit-app-region: drag;
+}
+html.frameless .app-navbar button,
+html.frameless .app-navbar input,
+html.frameless .app-navbar select,
+html.frameless .app-navbar .ribbon-tabs > *,
+html.frameless .app-navbar .navbar-actions > * {
+  -webkit-app-region: no-drag;
+}
+html.frameless-overlay .app-navbar {
+  padding-right: 150px;
+}
+html.frameless-mac .app-navbar {
+  padding-left: 80px;
+}
+/* A drag region takes clicks even under a dialog: drop it while one is open,
+   so a modal's close button near the top of the window still works. */
+html.frameless body.modal-open .app-navbar {
+  -webkit-app-region: no-drag;
+}
+
 /* ---------- Ribbon ---------- */
 /* Word-style: the tabs sit in the title bar and the band below shows the
    selected group's commands. The band is dark and in the navbar's colour

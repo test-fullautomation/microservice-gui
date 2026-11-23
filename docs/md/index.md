@@ -127,7 +127,8 @@ without the developer role.
 
 The GUI started normally shows only released features. Started with
 `--dev`, it shows every feature, so new ones can be stabilized and reviewed
-before they are released. The title bar then ends in "– dev".
+before they are released. The window's title (taskbar, Alt+Tab) then
+ends in "– dev".
 
 | Start | How |
 |---|---|

@@ -147,6 +147,14 @@ console.log('[preload] Python data:', _pythonDataPath);
 console.log('[preload] Web services:', _webServicesPath);
 console.log('[preload] Settings:', _settingsPath);
 
+// The window has no native title bar (electron/main.js): mark the page so
+// the navbar becomes the drag area and leaves room for the window buttons.
+// The browser-hosted GUI never gets the class and keeps its plain navbar.
+window.addEventListener('DOMContentLoaded', function () {
+  document.documentElement.classList.add('frameless',
+    process.platform === 'darwin' ? 'frameless-mac' : 'frameless-overlay');
+});
+
 // ---- Helper functions ----
 
 /**

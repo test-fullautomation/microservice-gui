@@ -115,6 +115,14 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     icon: iconPath,
+    // No native title bar: the navbar is the title bar (it drags the window,
+    // see .frameless in web/css/style.css). Windows and Linux draw their
+    // min/max/close buttons over its right end in the navbar's colour; macOS
+    // keeps its traffic lights at the left. The chrome is always dark.
+    backgroundColor: '#111915',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: process.platform === 'darwin' ? undefined
+      : { color: '#111915', symbolColor: '#E6ECE8', height: 56 },
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
