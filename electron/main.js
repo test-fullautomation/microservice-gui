@@ -23,6 +23,14 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 
+// --dev (or DASGUI_DEV=1): also show the features that are not released
+// yet (web/js/Release.js lists which are). Without it the GUI shows only
+// released features. Installed GUIs get it from the "DevAtServGUI (dev)"
+// shortcut the installer can add.
+const isDevRun = app.commandLine.hasSwitch('dev') || process.env.DASGUI_DEV === '1';
+process.env.DASGUI_DEV = isDevRun ? '1' : '0';
+const DEV_TITLE_SUFFIX = ' – dev';
+
 // One GUI per user: closing the window only hides it in the tray, so
 // starting the app again (Start menu, desktop icon, taskbar) shows that
 // window instead of opening a second GUI with its own bridge and startup
@@ -34,9 +42,31 @@ const isFirstInstance = isSmokeTest || app.requestSingleInstanceLock();
 if (!isFirstInstance) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
     console.log('[main] started again: showing the running GUI');
     showMainWindow();
+    // The dev shortcut clicked while the released-only GUI runs: offer to
+    // restart in dev mode rather than silently showing the same window.
+    if (!isDevRun && argv.includes('--dev')) offerDevRestart();
+  });
+}
+
+function offerDevRestart() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  dialog.showMessageBox(mainWindow, {
+    type: 'question',
+    title: 'DevAtServGUI',
+    message: 'Restart in dev mode?',
+    detail: 'The GUI is running without --dev, so it shows only released features. ' +
+            'Restarting closes this window and opens it again with all features.',
+    buttons: ['Restart in dev mode', 'Cancel'],
+    defaultId: 0,
+    cancelId: 1,
+  }).then(({ response }) => {
+    if (response !== 0) return;
+    app.relaunch({ args: process.argv.slice(1).concat('--dev') });
+    isQuitting = true;
+    app.quit();
   });
 }
 
@@ -97,6 +127,15 @@ function createWindow() {
     mainWindow.webContents.openDevTools();
   }
 
+  // Dev mode is marked in the title, so screenshots and reports say which one ran.
+  if (isDevRun) {
+    mainWindow.on('page-title-updated', (event, title) => {
+      if (title.endsWith(DEV_TITLE_SUFFIX)) return;
+      event.preventDefault();
+      mainWindow.setTitle(title + DEV_TITLE_SUFFIX);
+    });
+  }
+
   mainWindow.loadFile(path.join(__dirname, '..', 'web', 'index.html'));
 
   mainWindow.once('ready-to-show', () => {
@@ -120,7 +159,7 @@ function createWindow() {
 function createTray() {
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
-  tray.setToolTip('Microservice Manager GUI');
+  tray.setToolTip('Microservice Manager GUI' + (isDevRun ? DEV_TITLE_SUFFIX : ''));
 
   const contextMenu = Menu.buildFromTemplate([
     {

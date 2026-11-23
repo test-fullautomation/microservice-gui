@@ -9440,15 +9440,22 @@
           '<label class="form-check-label" for="' + id + '"><strong>' + label + '</strong> &mdash; ' + desc + '</label>' +
         '</div>';
     };
+    // Without --dev an unreleased role cannot be switched on; the saved
+    // choice is kept (a disabled box keeps its state) for a dev run.
+    var unreleased = function (id) { return MM.release && !MM.release.allows(id); };
+    var notReleased = ' <span class="badge text-bg-secondary">not released: start with --dev</span>';
     body.innerHTML =
       '<form id="settingsForm">' +
         '<div class="mb-3">' +
           '<div class="form-label fw-semibold">View</div>' +
           roleBox('settingViewUser', 'User', true, 'Services and Bench (always on)', true) +
           roleBox('settingViewAdmin', 'Administrator', viewNow.admin,
-                  'Consul, Nomad jobs and plugins', !!_viewFromUrl) +
+                  'Consul, Nomad jobs and plugins' + (unreleased('admin') ? notReleased : ''),
+                  !!_viewFromUrl || unreleased('admin')) +
           roleBox('settingViewDev', 'Developer', viewNow.developer,
-                  'Service Creator, test projects, plugin views and the inspector', !!_viewFromUrl) +
+                  'Service Creator, test projects, plugin views and the inspector' +
+                    (unreleased('developer') ? notReleased : ''),
+                  !!_viewFromUrl || unreleased('developer')) +
           '<div class="form-text">' + (_viewFromUrl
             ? 'Set by the page address (<code>?view=' + _viewString(_viewFromUrl) + '</code>).'
             : 'Takes effect when you save.') +
@@ -9810,7 +9817,10 @@
   }
 
   function applyView(r) {
-    _roles = { admin: !!r.admin, developer: !!r.developer };
+    // Without --dev, unreleased areas stay hidden whatever the view says
+    // (web/js/Release.js).
+    var allows = function (id) { return !MM.release || MM.release.allows(id); };
+    _roles = { admin: !!r.admin && allows('admin'), developer: !!r.developer && allows('developer') };
     document.body.classList.toggle('view-no-admin', !_roles.admin);
     document.body.classList.toggle('view-no-dev', !_roles.developer);
     if (!_roles.developer) {

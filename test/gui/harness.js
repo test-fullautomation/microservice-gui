@@ -50,6 +50,9 @@ process.env.DASGUI_IS_PACKAGED = '0';
 // its Startup steps would start a bridge, Consul and Nomad on their real
 // ports.
 process.env.DASGUI_NO_AUTOSTART = '1';
+// Probes check every feature, released or not, as a --dev run shows them
+// (test_gui_release.js checks the released-only GUI).
+if (process.env.DASGUI_DEV === undefined) process.env.DASGUI_DEV = '1';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

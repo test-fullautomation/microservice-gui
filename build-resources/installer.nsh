@@ -63,6 +63,7 @@
 
 !include "LogicLib.nsh"
 !include "nsDialogs.nsh"
+!include "FileFunc.nsh"
 
 ; ===================================================================
 ; Installer-only code — skipped during uninstaller build pass
@@ -1293,6 +1294,31 @@ Function MSB_PageLeave
   ${EndIf}
 FunctionEnd
 
+; ===================================================================
+; Developer shortcut: "DevAtServGUI (dev)" starts the GUI with --dev, so
+; it also shows the features that are not released yet (web/js/Release.js).
+; Off unless asked for: a Yes/No question (No preselected), or /DEV on the
+; installer's command line (also for silent installs). An update keeps the
+; shortcut of the previous install without asking again.
+; ===================================================================
+Function CreateDevShortcut
+  StrCpy $R8 "$SMPROGRAMS\${SHORTCUT_NAME} (dev).lnk"
+  IfFileExists $R8 dev_create
+  ${GetParameters} $R9
+  ClearErrors
+  ${GetOptions} $R9 "/DEV" $R7
+  IfErrors 0 dev_create
+  MessageBox MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2 \
+    "Also add a developer shortcut, $\"${SHORTCUT_NAME} (dev)$\"?$\n$\n\
+    It starts the GUI with all features, including those not released yet. \
+    Users do not need it." /SD IDNO IDYES dev_create
+  DetailPrint "Developer shortcut: not added."
+  Return
+  dev_create:
+  CreateShortCut $R8 "$INSTDIR\${PRODUCT_FILENAME}.exe" "--dev" "$INSTDIR\${PRODUCT_FILENAME}.exe" 0
+  DetailPrint "Developer shortcut: $R8"
+FunctionEnd
+
 !endif ; !BUILD_UNINSTALLER
 
 ; ===================================================================
@@ -1407,5 +1433,19 @@ FunctionEnd
   ${EndIf}
   ${If} $MSB_PythonPath != ""
     Call SavePythonPathToSettings
+  ${EndIf}
+
+  ; --- Developer shortcut (--dev), only when asked for ---
+  Call CreateDevShortcut
+!macroend
+
+; ===================================================================
+; customUnInstall — remove the developer shortcut. Not on an update: the
+; old version is uninstalled before the new one installs, and an update
+; keeps the shortcut (see CreateDevShortcut).
+; ===================================================================
+!macro customUnInstall
+  ${IfNot} ${isUpdated}
+    Delete "$SMPROGRAMS\${SHORTCUT_NAME} (dev).lnk"
   ${EndIf}
 !macroend

@@ -123,6 +123,29 @@ without the developer role.
     still call its endpoints; keep the bridge on `localhost` (see
     [Bridge security](#bridge-security-allowed-origins)).
 
+## Released features and `--dev`
+
+The GUI started normally shows only released features. Started with
+`--dev`, it shows every feature, so new ones can be stabilized and reviewed
+before they are released. The title bar then ends in "– dev".
+
+| Start | How |
+|---|---|
+| Windows | the *DevAtServGUI (dev)* shortcut. The installer adds it when you answer *Yes* to its question, or with `/DEV` on the installer's command line. |
+| Linux | `devatservgui --dev`, or the *DevAtServGUI (dev)* launcher: `sudo DEVATSERVGUI_DEV_SHORTCUT=1 apt install ./devatservgui_*.deb` |
+| Scripts, benches, CI | `DASGUI_DEV=1` in the environment |
+| Browser-hosted GUI | `?dev=1` in the address |
+
+Which features are released is one list, `web/js/Release.js`; releasing a
+feature means setting it to `true` there. Today the released GUI is the
+Services view, the Bench, Startup, Settings and Help. The **admin** and
+**developer** areas (above) are not released: without `--dev` they stay
+hidden whatever the view says, and *Settings → View* shows them as "not
+released". With `--dev` the view roles apply as usual.
+
+The GUI runs once per user. Starting the dev shortcut while the normal GUI
+runs asks whether to restart it in dev mode.
+
 ## Startup: services ready when the GUI opens
 
 The desktop app can bring up everything the services need as it opens,

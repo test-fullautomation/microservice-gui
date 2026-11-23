@@ -702,6 +702,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
    */
   autoStartDisabled: () => process.env.DASGUI_NO_AUTOSTART === '1',
 
+  /**
+   * True when the GUI was started with --dev (or DASGUI_DEV=1): it also
+   * shows the features that are not released yet (web/js/Release.js).
+   */
+  isDevRun: () => process.env.DASGUI_DEV === '1',
+
   readJobFiles: (entries) => {
     const isJob = (name) => /\.(hcl|nomad)$/i.test(name);
     const out = [];

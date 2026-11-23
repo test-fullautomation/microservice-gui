@@ -13,6 +13,7 @@ case "${1:-remove}" in
   remove|purge)
     [ "$(readlink /usr/bin/devatservgui 2>/dev/null)" = /opt/DevAtServGUI/devatservgui ] && rm -f /usr/bin/devatservgui
     rm -rf /opt/DevAtServGUI/python-env
+    rm -f /usr/share/applications/devatservgui-dev.desktop
     rmdir /opt/DevAtServGUI 2>/dev/null
     ;;
 esac

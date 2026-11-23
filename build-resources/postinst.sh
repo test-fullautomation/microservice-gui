@@ -45,6 +45,21 @@ if [[ ! -x "$PY_BIN" ]]; then
 fi
 echo "DevAtServGUI: using bundled Python runtime; no system Python or pip install required."
 
+# Developer launcher "DevAtServGUI (dev)": starts the GUI with --dev, so it
+# also shows the features that are not released yet. Only when asked for:
+#   sudo DEVATSERVGUI_DEV_SHORTCUT=1 apt install ./devatservgui_*.deb
+# An upgrade keeps the launcher of the previous install.
+DEV_DESKTOP=/usr/share/applications/devatservgui-dev.desktop
+MAIN_DESKTOP=/usr/share/applications/devatservgui.desktop
+if [[ "${DEVATSERVGUI_DEV_SHORTCUT:-0}" == "1" || -f "$DEV_DESKTOP" ]]; then
+    if [[ -f "$MAIN_DESKTOP" ]]; then
+        sed -e 's/^Name=\(.*\)$/Name=\1 (dev)/' \
+            -e 's|^Exec=\([^ ]*\)\(.*\)$|Exec=\1 --dev\2|' \
+            -e '/^StartupWMClass=/d' "$MAIN_DESKTOP" > "$DEV_DESKTOP"
+        echo "DevAtServGUI: developer launcher $DEV_DESKTOP (starts with --dev)"
+    fi
+fi
+
 echo
 echo "DevAtServGUI: post-install infrastructure check"
 echo "-----------------------------------------------"
