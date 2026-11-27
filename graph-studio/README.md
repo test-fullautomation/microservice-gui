@@ -60,7 +60,7 @@ Rules that keep re-vendoring cheap:
 
 - **◉ Monitor** — one long-lived `grpcurl … SignalQueryService/Subscribe`
   child per owning endpoint, its streamed JSON split by
-  `tools/jsonstream.js`. Live value + age on every observe tag, a ⇠ badge on
+  `tools/jsonstream.js`. Live value, service timestamp + age on every observe tag, a ⇠ badge on
   `SubscriberSourceBlock`s, a pulse through everything upstream of a tapped
   port, and sparklines matching the Chart colours. Works against anything
   already running, a Nomad-deployed graph service included.

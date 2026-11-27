@@ -377,3 +377,32 @@ function validateGraph(graph, catMap) {
 
   return issues;
 }
+
+// ─── monitor: the timestamp of a sample ─────────────────────────
+// A sample carries the Unix epoch seconds its owner service stamped on it.
+// proto3 JSON drops a zero, so "no timestamp" arrives as undefined.
+function hasStamp(ts) {
+  return typeof ts === "number" && Number.isFinite(ts) && ts > 0;
+}
+
+// Clock time of a sample, to the millisecond: "14:03:22.417".
+// Local time by default; utc=true gives the same in UTC. "" without a timestamp.
+function fmtStamp(ts, utc) {
+  if (!hasStamp(ts)) return "";
+  const d = new Date(Math.round(ts * 1000));
+  const p = (n, w) => String(n).padStart(w, "0");
+  return utc
+    ? `${p(d.getUTCHours(), 2)}:${p(d.getUTCMinutes(), 2)}:${p(d.getUTCSeconds(), 2)}.${p(d.getUTCMilliseconds(), 3)}`
+    : `${p(d.getHours(), 2)}:${p(d.getMinutes(), 2)}:${p(d.getSeconds(), 2)}.${p(d.getMilliseconds(), 3)}`;
+}
+
+// Full date and time of a sample for a tooltip: "2026-11-26 14:03:22.417".
+function fmtStampFull(ts, utc) {
+  if (!hasStamp(ts)) return "";
+  const d = new Date(Math.round(ts * 1000));
+  const p = (n) => String(n).padStart(2, "0");
+  const date = utc
+    ? `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`
+    : `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${date} ${fmtStamp(ts, utc)}${utc ? " UTC" : ""}`;
+}

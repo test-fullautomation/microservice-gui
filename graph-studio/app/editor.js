@@ -34,7 +34,7 @@ const state = {
   monitor: {
     active: false,
     values: new Map(),         // signal name -> {value, timestamp, rx}
-    history: new Map(),        // signal name -> [[t_ms, value], ...] (ring, ≤ HISTORY_MS)
+    history: new Map(),        // signal name -> [[t_ms, value, timestamp], ...] (ring, ≤ HISTORY_MS)
     colors: new Map(),         // signal name -> hex (fixed order by entity, never cycled)
     hidden: new Set(),         // signals unticked in the chart panel
     paused: false,
@@ -145,7 +145,17 @@ function wirePath(x1, y1, x2, y2) {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
+// Everything: the canvas and the side panels. For a change of the graph or of the selection.
 function render() {
+  renderCanvas();
+  renderIssues();
+  renderInspector();
+  renderFileLabel();
+}
+
+// The canvas alone. Live values redraw only this: rebuilding the inspector for
+// every sample would replace the field the user is typing in (set signal, params).
+function renderCanvas() {
   svg.innerHTML = "";
   worldG = el("g", { id: "world" }, svg);
   applyView();
@@ -178,10 +188,6 @@ function render() {
     if (!state.positions[block.id]) state.positions[block.id] = { x: 80, y: 80 };
     renderNode(block, nodesG);
   }
-
-  renderIssues();
-  renderInspector();
-  renderFileLabel();
 }
 
 function renderNode(block, parent) {
@@ -203,6 +209,7 @@ function renderNode(block, parent) {
     const live = state.monitor.values.get(block.params.signal_name);
     const badge = el("text", { class: "sub-badge", x: 10, y: 52 }, g);
     badge.textContent = live ? `⇠ ${fmtVal(live.value)}  (${fmtAge(live.rx)})` : "⇠ waiting…";
+    if (live) stampTitle(badge, live.timestamp);
   }
 
   // params summary
@@ -243,7 +250,11 @@ function renderNode(block, parent) {
         const val = el("text", { class: "live-val", x: w + 29, y: cy - 4 }, g);
         val.textContent = `= ${fmtVal(live.value)}`;
         const age = el("text", { class: "live-age", x: w + 29, y: cy + 8 }, g);
-        age.textContent = fmtAge(live.rx) + " ago";
+        // the owner service's timestamp first, then how long ago the value arrived here
+        const stamp = fmtStamp(live.timestamp);
+        age.textContent = (stamp ? `@ ${stamp} · ` : "") + fmtAge(live.rx) + " ago";
+        stampTitle(val, live.timestamp);
+        stampTitle(age, live.timestamp);
         // sparkline beside the text — last window, own scale
         const hist = state.monitor.history.get(obs.name) || [];
         if (hist.length >= 2) {
@@ -1113,7 +1124,7 @@ let renderQueued = false;
 function scheduleRender() {
   if (renderQueued) return;
   renderQueued = true;
-  requestAnimationFrame(() => { renderQueued = false; render(); });
+  requestAnimationFrame(() => { renderQueued = false; renderCanvas(); });
 }
 
 function seriesColor(name) {
@@ -1138,7 +1149,7 @@ function onMonitorUpdate(u) {
   if (!state.monitor.paused) {
     let h = state.monitor.history.get(u.name);
     if (!h) { h = []; state.monitor.history.set(u.name, h); }
-    h.push([now, u.value]);
+    h.push([now, u.value, u.timestamp]);
     while (h.length && h[0][0] < now - HISTORY_MS) h.shift();
   }
   scheduleChart();
@@ -1171,6 +1182,12 @@ function fmtVal(v) {
   if (v === undefined || v === null) return "—";
   const a = Math.abs(v);
   return a >= 100 ? v.toFixed(1) : a >= 1 ? v.toFixed(3) : v.toFixed(4);
+}
+
+// Tooltip with the full date and time the owner service stamped on a value.
+function stampTitle(node, ts) {
+  const full = fmtStampFull(ts);
+  if (full) el("title", {}, node).textContent = `stamped by the service: ${full}`;
 }
 
 function fmtAge(rx) {
@@ -1452,7 +1469,8 @@ function renderChart() {
         const x = xOf(best[0]), y = yOf(best[1]);
         ctx.fillStyle = "#0e1628"; ctx.beginPath(); ctx.arc(x, y, 5.5, 0, Math.PI * 2); ctx.fill();   // surface ring
         ctx.fillStyle = seriesColor(name); ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
-        const label = fmtVal(best[1]);
+        const stamp = fmtStamp(best[2]);
+        const label = fmtVal(best[1]) + (stamp ? `  @ ${stamp}` : "");
         ctx.font = "bold 11px Consolas, monospace";
         const tw = ctx.measureText(label).width + 8;
         const lx = Math.min(x + 8, left + plotW - tw);

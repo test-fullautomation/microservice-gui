@@ -120,9 +120,14 @@ status pill.
 1. **◉ Monitor** is the one to reach for on a real bench: it subscribes to
    every signal this graph observes on whatever is already running — your
    Nomad-deployed graph service included. On the canvas you then see
-   **`= value` + age** under each ◉ tag with a **sparkline**, a **⇠ value**
-   badge on each `SubscriberSourceBlock`, and a **yellow pulse** running
-   through the tapped block and everything upstream of it on each update.
+   **`= value`**, its **timestamp** and its age under each ◉ tag with a
+   **sparkline**, a **⇠ value** badge on each `SubscriberSourceBlock`, and a
+   **yellow pulse** running through the tapped block and everything upstream
+   of it on each update. The timestamp (`@ 14:03:22.417`, local time) is the
+   one the owner service stamped on the value; the age counts from the moment
+   the value arrived in the studio. Hover the value for the full date and
+   time. In the Chart tab the crosshair shows the timestamp of the sample
+   beside its value.
 2. **▶ Run cluster / ▶ Run graph** is a *local, fully mocked* wiring check
    (in-memory registry + discovery + graph services, nothing real). It needs
    the *signals root for ▶ Run* field (or `MB_SIGNALS_ROOT`) pointing at the

@@ -14,7 +14,8 @@ for (const f of ["app/catalog.js", "app/model.js", "app/layout.js", "app/session
 }
 const G = vm.runInContext(
   "({ DEFAULT_CATALOG, checkCatalog, catalogByType, parseGraph, serializeGraph, validateGraph, autoLayout, parseRef, makeRef, cycleBlocks," +
-  "   SESSION_KEY, makeSession, restorePlan, sessionLayoutText, validSelection, validView })",
+  "   SESSION_KEY, makeSession, restorePlan, sessionLayoutText, validSelection, validView," +
+  "   hasStamp, fmtStamp, fmtStampFull })",
   ctx
 );
 
@@ -410,6 +411,40 @@ check("parseRef keeps dotted block ids",
   check("session: the window stores it before it is destroyed, without asking to discard",
     /saveSession\(\)/.test(ipc) && !/Discard and close/.test(ipc));
   check("session: a restored file is watched again", /watchGraph\(state\.filePath\)/.test(src) && /CH\("watch-graph"\)/.test(ipc));
+}
+
+// ─── monitor: the timestamp of a sample ─────────────────────────────
+{
+  const ts = Date.UTC(2026, 10, 26, 14, 3, 22, 417) / 1000;   // unix seconds, as the service sends it
+  check("stamp: clock time to the millisecond", G.fmtStamp(ts, true) === "14:03:22.417", G.fmtStamp(ts, true));
+  check("stamp: full date and time for the tooltip", G.fmtStampFull(ts, true) === "2026-11-26 14:03:22.417 UTC", G.fmtStampFull(ts, true));
+  check("stamp: hours, minutes and milliseconds are zero-padded",
+    G.fmtStamp(Date.UTC(2026, 0, 5, 3, 4, 5, 6) / 1000, true) === "03:04:05.006");
+  check("stamp: local time is the default", /^\d\d:\d\d:\d\d\.\d{3}$/.test(G.fmtStamp(ts)));
+  check("stamp: a sample without timestamp shows nothing",
+    [undefined, null, 0, NaN, "1764165802", -1].every((v) => G.fmtStamp(v) === "" && G.fmtStampFull(v) === "" && !G.hasStamp(v)));
+  const src = fs.readFileSync(path.join(ROOT, "app/editor.js"), "utf-8");
+  check("stamp: the observe tag shows it beside the age", /fmtStamp\(live\.timestamp\)/.test(src));
+  check("stamp: the chart history keeps it and the crosshair shows it",
+    /h\.push\(\[now, u\.value, u\.timestamp\]\)/.test(src) && /fmtStamp\(best\[2\]\)/.test(src));
+}
+
+// ─── monitor: a live value must not rebuild the inspector ───────────
+{
+  const src = fs.readFileSync(path.join(ROOT, "app/editor.js"), "utf-8").replace(/\r\n/g, "\n");
+  const body = (name) => {
+    const m = new RegExp("\\nfunction " + name + "\\([^)]*\\) \\{\\n([\\s\\S]*?)\\n\\}\\n").exec(src);
+    return m ? m[1] : "";
+  };
+  check("live redraw: the canvas is drawn without the inspector",
+    body("renderCanvas").length > 0 && !/renderInspector\(/.test(body("renderCanvas")));
+  check("live redraw: a full render still draws the inspector",
+    /renderCanvas\(\)/.test(body("render")) && /renderInspector\(\)/.test(body("render")));
+  check("live redraw: monitor updates redraw the canvas only",
+    /renderCanvas\(\)/.test(body("scheduleRender")) && !/[^a-zA-Z]render\(\)/.test(body("scheduleRender")));
+  check("live redraw: a sample and the refresh timer go through scheduleRender",
+    /scheduleRender\(\)/.test(body("onMonitorUpdate")) &&
+    /setInterval\(\(\) => \{ if \(state\.monitor\.active\) \{ scheduleRender\(\);/.test(src));
 }
 
 console.log(failures === 0 ? "\nALL TESTS PASSED" : `\n${failures} FAILURES`);
