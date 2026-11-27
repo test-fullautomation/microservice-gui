@@ -145,7 +145,17 @@ function wirePath(x1, y1, x2, y2) {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
+// Everything: the canvas and the side panels. For a change of the graph or of the selection.
 function render() {
+  renderCanvas();
+  renderIssues();
+  renderInspector();
+  renderFileLabel();
+}
+
+// The canvas alone. Live values redraw only this: rebuilding the inspector for
+// every sample would replace the field the user is typing in (set signal, params).
+function renderCanvas() {
   svg.innerHTML = "";
   worldG = el("g", { id: "world" }, svg);
   applyView();
@@ -178,10 +188,6 @@ function render() {
     if (!state.positions[block.id]) state.positions[block.id] = { x: 80, y: 80 };
     renderNode(block, nodesG);
   }
-
-  renderIssues();
-  renderInspector();
-  renderFileLabel();
 }
 
 function renderNode(block, parent) {
@@ -1118,7 +1124,7 @@ let renderQueued = false;
 function scheduleRender() {
   if (renderQueued) return;
   renderQueued = true;
-  requestAnimationFrame(() => { renderQueued = false; render(); });
+  requestAnimationFrame(() => { renderQueued = false; renderCanvas(); });
 }
 
 function seriesColor(name) {

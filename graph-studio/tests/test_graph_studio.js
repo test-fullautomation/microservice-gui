@@ -429,5 +429,23 @@ check("parseRef keeps dotted block ids",
     /h\.push\(\[now, u\.value, u\.timestamp\]\)/.test(src) && /fmtStamp\(best\[2\]\)/.test(src));
 }
 
+// ─── monitor: a live value must not rebuild the inspector ───────────
+{
+  const src = fs.readFileSync(path.join(ROOT, "app/editor.js"), "utf-8").replace(/\r\n/g, "\n");
+  const body = (name) => {
+    const m = new RegExp("\\nfunction " + name + "\\([^)]*\\) \\{\\n([\\s\\S]*?)\\n\\}\\n").exec(src);
+    return m ? m[1] : "";
+  };
+  check("live redraw: the canvas is drawn without the inspector",
+    body("renderCanvas").length > 0 && !/renderInspector\(/.test(body("renderCanvas")));
+  check("live redraw: a full render still draws the inspector",
+    /renderCanvas\(\)/.test(body("render")) && /renderInspector\(\)/.test(body("render")));
+  check("live redraw: monitor updates redraw the canvas only",
+    /renderCanvas\(\)/.test(body("scheduleRender")) && !/[^a-zA-Z]render\(\)/.test(body("scheduleRender")));
+  check("live redraw: a sample and the refresh timer go through scheduleRender",
+    /scheduleRender\(\)/.test(body("onMonitorUpdate")) &&
+    /setInterval\(\(\) => \{ if \(state\.monitor\.active\) \{ scheduleRender\(\);/.test(src));
+}
+
 console.log(failures === 0 ? "\nALL TESTS PASSED" : `\n${failures} FAILURES`);
 process.exit(failures === 0 ? 0 : 1);
